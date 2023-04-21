@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-from cell import BaseCell, Grid
+from cell import BaseCell
+from grid import Grid
 import random as rand
 
-def start(infection_prob, repro_prob, die_prob,steps=100, width=100, height=100, numCells=200, numInfected=20):
+
+
+def start(infection_prob, repro_prob, die_prob, width=100, height=100, numCells=200, numInfected=20, verbose=False):
     #creates grid and adds cells randomly to grid and randomly infects some of them
     grid = Grid(width, height)
     for i in range(numCells):
@@ -21,22 +24,42 @@ def start(infection_prob, repro_prob, die_prob,steps=100, width=100, height=100,
         if cell != None and not cell.infected:
             cell.infected = True
             infected += 1
-    print("Initial Conditions:" + "\n" + "Number of living Cells: " + str(numCells) + "\n" + "Number of infected Cells: " + str(numInfected))
-    print("Grid size: " + str(width) + "x" + str(height) + "\n")
-    step = 1
-    while step <= steps:
-        cells = grid.getAllCells()
-        print("Epoch: " + str(step))
-        print("Number of living Cells: " + str(len(cells)))
-        print("Number of infected Cells: " + str(len([cell for cell in cells if cell.infected])))
+    if verbose: print("Initial Conditions:" + "\n" + "Number of living Cells: " + str(numCells) + "\n" + "Number of infected Cells: " + str(numInfected))
+    if verbose: print("Grid size: " + str(width) + "x" + str(height) + "\n")
+
+
+
+def step(grid, infection_prob, verbose=False):
+
+    cells = grid.getAllCells()
+    if verbose: print("Epoch: " + str(step))
+    if verbose: print("Number of living Cells: " + str(len(cells)))
+    if verbose: print("Number of infected Cells: " + str(len([cell for cell in cells if cell.infected])))
+    
+    for cell in cells:
+
+        cell.reproduce(grid)
+        cell.infect(infection_prob, grid)
+        cell.die(grid)
         
-        for cell in cells:
-            cell.reproduce(grid)
-            cell.infect(infection_prob, grid)
-            cell.die(grid)
-        step += 1
     
+
+
 def main():
-    start(0.2, .5, .2)
-    
+    INFECT_PROB = 0.2
+    REPRODUCE_PROB = 0.5
+    DEATH_PROB = 0.2
+    EPOCHS = 100
+    VERBOSE = True
+
+    grid = start(INFECT_PROB, REPRODUCE_PROB, DEATH_PROB, VERBOSE)
+
+    numSteps = 0
+
+    while numSteps < EPOCHS:
+
+        step(grid, INFECT_PROB, VERBOSE)
+
+        numSteps += 1
+
 main()
