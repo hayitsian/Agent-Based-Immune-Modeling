@@ -30,9 +30,3 @@ def nearestPoint(pos):
     grid_col = int(current_col + 0.5)
     return (grid_row, grid_col)
 
-def pause():
-    """
-    Pauses the output stream awaiting user feedback.
-    """
-    print("<Press enter/return to continue>")
-    input()

@@ -7,7 +7,8 @@ import random as rand
 
 def start(infection_prob, repro_prob, die_prob, width=100, height=100, numCells=200, numInfected=20, verbose=False):
     #creates grid and adds cells randomly to grid and randomly infects some of them
-    grid = Grid(width, height)
+    grid = Grid(width, height, infection_prob=infection_prob)
+    print(str(grid))
     for i in range(numCells):
         x = rand.randint(0, width-1)
         y = rand.randint(0, height-1)
@@ -24,23 +25,24 @@ def start(infection_prob, repro_prob, die_prob, width=100, height=100, numCells=
         if cell != None and not cell.infected:
             cell.infected = True
             infected += 1
+
     if verbose: print("Initial Conditions:" + "\n" + "Number of living Cells: " + str(numCells) + "\n" + "Number of infected Cells: " + str(numInfected))
     if verbose: print("Grid size: " + str(width) + "x" + str(height) + "\n")
 
+    return grid
 
 
 def step(grid, infection_prob, verbose=False):
 
-    cells = grid.getAllCells()
-    if verbose: print("Epoch: " + str(step))
-    if verbose: print("Number of living Cells: " + str(len(cells)))
-    if verbose: print("Number of infected Cells: " + str(len([cell for cell in cells if cell.infected])))
-    
-    for cell in cells:
+    # cells = grid.getAllCells()
 
-        cell.reproduce(grid)
-        cell.infect(infection_prob, grid)
-        cell.die(grid)
+    grid.update()
+
+
+    if verbose: print("Number of living Cells: " + str(len(grid.getAllCells())))
+    if verbose: print("Number of infected Cells: " + str(len([cell for cell in grid.getAllCells() if cell.infected])))
+    
+
         
     
 
@@ -52,13 +54,16 @@ def main():
     EPOCHS = 100
     VERBOSE = True
 
-    grid = start(INFECT_PROB, REPRODUCE_PROB, DEATH_PROB, VERBOSE)
+    grid = start(INFECT_PROB, REPRODUCE_PROB, DEATH_PROB, verbose=VERBOSE)
 
     numSteps = 0
 
     while numSteps < EPOCHS:
 
+        if VERBOSE: print("Epoch: " + str(numSteps))
         step(grid, INFECT_PROB, VERBOSE)
+
+        if VERBOSE: print(str(grid))
 
         numSteps += 1
 
