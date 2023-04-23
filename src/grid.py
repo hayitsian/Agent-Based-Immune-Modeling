@@ -23,7 +23,25 @@ class Grid():
             self.reproduceCell(cell)
             self.infectCell(cell)
             self.die(cell)
+            self.immuneAct(cell)
     
+    def immuneAct(self, cell):
+        if cell.immune:
+            attackUtil = cell.util("ATTACK",cell,self)
+            passUtil = cell.util("PASS",cell,self)
+            if attackUtil > passUtil:
+                self.immuneAttack(cell)
+                return self
+            else: return self
+        return self
+
+    def immuneAttack(self, cell):
+        neighbors = self.getNeighbors(cell.x, cell.y)
+        if bernoulli.rvs(cell.attack_success) == 1:
+            for neighbor in neighbors:
+                self.add(neighbor.x,neighbor.y,None)
+        return self
+
     def reproduceCell(self, cell):
         #reproduces cell if random number is less than reproduction probability
         sample = bernoulli.rvs(cell.repro_prob)
@@ -37,10 +55,10 @@ class Grid():
 
     def infectCell(self, cell):
         #infects neighbor cells if infected with probability of infection
-
         if cell.infected:
             neighbors = self.getNeighbors(cell.x, cell.y)
             for neighbor in neighbors:
+                if neighbor.immune: continue
                 sample = bernoulli.rvs(self.infection_prob)
                 if sample == 1:
                     self.add(neighbor.x,neighbor.y,BaseCell(neighbor.x,neighbor.y,infected=True))
