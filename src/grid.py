@@ -17,13 +17,20 @@ class Grid():
     def get(self, x, y):
         return self.grid[x][y]
     
-    def update(self):
+    def update(self, verbose=False):
+
+        numActivated = 0
 
         for cell in self.getAllCells():
             self.reproduceCell(cell)
             self.infectCell(cell)
             self.die(cell)
-            self.immuneAct(cell)
+            numActivated += self.immuneAct(cell)
+
+        numCells = len(self.getAllCells())
+        numInfected = sum([cell.infected for cell in self.getAllCells()])
+        numImmune = sum([cell.immune for cell in self.getAllCells()])
+        return numCells, numInfected, numImmune, numActivated
     
     def immuneAct(self, cell):
         if cell.immune:
@@ -31,9 +38,9 @@ class Grid():
             passUtil = cell.util("PASS",cell,self)
             if attackUtil > passUtil:
                 self.immuneAttack(cell)
-                return self
-            else: return self
-        return self
+                return 1
+            else: return 0
+        return 0
 
     def immuneAttack(self, cell):
         neighbors = self.getNeighbors(cell.x, cell.y)

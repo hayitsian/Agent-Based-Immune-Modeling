@@ -38,6 +38,8 @@ class ImmuneCell(BaseCell):
     def __str__(self):
         return "i"
 
+
+
 def NaiveUtility(action, cell, grid):
     neighbors = grid.getNeighbors(cell.x, cell.y)
     utility = 0
