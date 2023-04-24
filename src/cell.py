@@ -53,9 +53,9 @@ class ImmuneCell(BaseCell):
             self.x = self.x - 1
         elif randPoint==1 and self._movementConditions(self.x + 1, self.y, width, height, restrictedList):
             self.x = self.x + 1
-        elif randPoint==2 and self._movementConditions(self.y - 1, self.y, width, height, restrictedList):
+        elif randPoint==2 and self._movementConditions(self.x, self.y - 1, width, height, restrictedList):
             self.y = self.y - 1
-        elif randPoint==3 and self._movementConditions(self.y + 1, self.y, width, height, restrictedList):
+        elif randPoint==3 and self._movementConditions(self.x, self.y + 1, width, height, restrictedList):
             self.y = self.y + 1
 
         return self
