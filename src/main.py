@@ -25,13 +25,13 @@ def main():
     REPRODUCE_PROB = 0.09
     DEATH_PROB = 0.06
     ATTACK_SUCCESS = 0.75
-    INIT_HEALTHY = 200
-    INIT_INFECTED = 20
-    INIT_IMMUNE = 20
-    WIDTH = 100
-    HEIGHT = 100
+    INIT_HEALTHY = 20
+    INIT_INFECTED = 5
+    INIT_IMMUNE = 5
+    WIDTH = 20
+    HEIGHT = 20
     EPOCHS = 500
-    VERBOSE = False
+    VERBOSE = True
 
     game = GameState(WIDTH, HEIGHT)
 
@@ -42,6 +42,7 @@ def main():
     if VERBOSE: print("Initial Conditions:" + "\n" + "Number of living Cells: " + str(INIT_HEALTHY) + "\n" + "Number of infected Cells: " 
                       + str(INIT_INFECTED) + "\n" + "Number of immune Cells: " + str(INIT_IMMUNE) + "\n")
     if VERBOSE: print("Grid size: " + str(game.width) + "x" + str(game.height) + "\n")
+    if VERBOSE: print(str(game) + "\n", end='\r')
 
     numSteps = 0
 

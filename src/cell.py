@@ -51,14 +51,18 @@ class ImmuneCell(BaseCell):
 
         if randPoint==0 and self._movementConditions(self.x - 1, self.y, width, height, restrictedList):
             self.x = self.x - 1
+            return 1
         elif randPoint==1 and self._movementConditions(self.x + 1, self.y, width, height, restrictedList):
             self.x = self.x + 1
+            return 1
         elif randPoint==2 and self._movementConditions(self.y - 1, self.y, width, height, restrictedList):
             self.y = self.y - 1
+            return 1
         elif randPoint==3 and self._movementConditions(self.y + 1, self.y, width, height, restrictedList):
             self.y = self.y + 1
+            return 1
 
-        return self
+        return 0
 
     def __str__(self):
         return "i"

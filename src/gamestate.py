@@ -3,6 +3,7 @@ from scipy.stats import bernoulli
 from cell import BaseCell, ImmuneCell, NaiveUtility
 import numpy as np
 import random as rand
+from copy import deepcopy
 
 class GameState():
 
@@ -28,6 +29,11 @@ class GameState():
                 self.cells.append(cell)
             else:
                 i -= 1
+
+        numCellsList = len(self.cells)
+        numCellsGrid = len(self.getAllCells())
+        assert numCellsList == numCellsGrid, f"Cells List {numCellsList}, cells grid {numCellsGrid}"
+
         infected = 0
         while infected < numInfected:
             i = rand.randint(0, len(self.cells)-1)
@@ -45,6 +51,10 @@ class GameState():
                 self.add(cell.x, cell.y, ic)
                 immune += 1
 
+        numCellsList = len(self.cells)
+        numCellsGrid = len(self.getAllCells())
+        assert numCellsList == numCellsGrid, f"Cells List {numCellsList}, cells grid {numCellsGrid}"
+
         return self
 
 
@@ -53,14 +63,30 @@ class GameState():
         numActivated = 0
 
         for cell in self.cells:
-            self.moveCell(cell)
-            self.reproduceCell(cell)
-            self.infectCell(cell)
-            numActivated += self.immuneAct(cell)
-            cell = self.die(cell)
+            
+            res = self.moveCell(cell)
+            if res: print("Cell moved")
+            
+            res = self.reproduceCell(cell)
+            if res: print("Cell reproduced")
+            
+            res = self.infectCell(cell)
+            if res: print(f"Cells infected: {res}")
+            
+            res = self.immuneAct(cell)
+            numActivated += res
+            if res: print("Cell activated")
+
+            res = self.die(cell)
+            if res: print("Cell died")
+
+            numCellsList = len(self.cells)
+            numCellsGrid = len(self.getAllCells())
+            assert numCellsList == numCellsGrid, f"Cells List {numCellsList}, cells grid {numCellsGrid}"
             
         # self.updateGrid()
 
+        # TODO these metrics are wrong
         numCells = len(self.cells)
         numInfected = sum([cell.infected for cell in self.cells])
         numImmune = sum([cell.immune for cell in self.cells])
@@ -80,8 +106,14 @@ class GameState():
     
     def moveCell(self, cell):
         if cell.immune:
-            cell.move(self.getNeighbors(cell.x, cell.y),
+            oldX = deepcopy(cell.x)
+            oldY = deepcopy(cell.y)
+            result = cell.move(self.getNeighbors(cell.x, cell.y),
                       self.width, self.height)
+            if result:
+                # update the grid
+                self.add(oldX, oldY, None)
+                self.add(cell.x, cell.y, cell)
     
     def immuneAct(self, cell):
         if cell.immune:
@@ -98,7 +130,7 @@ class GameState():
         if bernoulli.rvs(cell.attack_success) == 1:
             for neighbor in neighbors:
                 self.add(neighbor.x,neighbor.y,None)
-                if neighbor in self.cells: self.cells.remove(neighbor)
+                if neighbor in self.cells: self.cells.remove(neighbor) # NOTE: this could be an issue
             return 1
         return 0
 
@@ -111,28 +143,34 @@ class GameState():
                 newCell = cell.reproduce(newCoords[0], newCoords[1])
                 self.add(newCoords[0], newCoords[1], newCell)
                 self.cells.append(newCell)
-
-        return self
+                return 1
+        return 0
 
     def infectCell(self, cell):
         #infects neighbor cells if infected with probability of infection
+        numInfected = 0
         if cell.infected:
             neighbors = self.getNeighbors(cell.x, cell.y)
             for neighbor in neighbors:
                 if neighbor.immune: continue
                 sample = bernoulli.rvs(self.infection_prob)
                 if sample == 1:
-                    neighbor.infected=True
-                    self.grid[neighbor.x][neighbor.y] = neighbor
-        return self
+                    if neighbor in self.cells: self.cells.remove(neighbor)
+                    if not neighbor.infected:
+                        neighbor.infected=True
+                        self.cells.append(neighbor)
+                        self.add(neighbor.x, neighbor.y, neighbor)
+                        numInfected += 1
+        return numInfected
     
     def die(self, cell):
         #kills cell if random number is less than death probability
         sample = bernoulli.rvs(cell.die_prob)
         if sample == 1:
             self.add(cell.x, cell.y, None)
-            if cell in self.cells: self.cells.remove(cell)
-        return self
+            if cell in self.cells: self.cells.remove(cell) # NOTE: this could be an issue
+            return 1
+        return 0
     
     
     def getEmptyNeighbor(self, x, y):
@@ -164,7 +202,7 @@ class GameState():
     
     def getAllCells(self):
         #returns list of all Cell objects in grid
-        return self.cells
+        return [cell for cell in self.grid if cell is not None]
     
 
     def __str__(self):
