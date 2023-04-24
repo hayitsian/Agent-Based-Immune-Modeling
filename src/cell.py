@@ -1,6 +1,7 @@
 from scipy.stats import bernoulli
 
 from copy import deepcopy
+import random as rand
 
 class BaseCell():
 
@@ -25,7 +26,7 @@ class BaseCell():
     def __str__(self):
         if self.infected: return "x"
         return "o"
-    
+
 
 class ImmuneCell(BaseCell):
 
@@ -35,6 +36,30 @@ class ImmuneCell(BaseCell):
         self.util = util #utility of cell. Should be a function that takes in an action, a ImmuneCell, and a Grid
         self.attack_success = attack_success #probability of attacking neighbor cells successfully
     
+    def _movementConditions(self, newX, newY, width, height, obsPoints):
+        return width > newX >= 0 and height > newY >= 0 and (newX, newY) not in obsPoints
+
+    def move(self, neighbors, width, height):
+        randPoint = rand.randint(0, 3)
+        numNeighbors = len(neighbors)
+        restrictedList = []
+        # for each neighbor
+        if numNeighbors > 0:
+            for neigh in neighbors:
+                restrictedList.append((neigh.x, neigh.y))
+                # add its coords to some list
+
+        if randPoint==0 and self._movementConditions(self.x - 1, self.y, width, height, restrictedList):
+            self.x = self.x - 1
+        elif randPoint==1 and self._movementConditions(self.x + 1, self.y, width, height, restrictedList):
+            self.x = self.x + 1
+        elif randPoint==2 and self._movementConditions(self.y - 1, self.y, width, height, restrictedList):
+            self.y = self.y - 1
+        elif randPoint==3 and self._movementConditions(self.y + 1, self.y, width, height, restrictedList):
+            self.y = self.y + 1
+
+        return self
+
     def __str__(self):
         return "i"
 

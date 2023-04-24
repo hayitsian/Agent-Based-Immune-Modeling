@@ -1,15 +1,76 @@
 
 from scipy.stats import bernoulli
-from cell import BaseCell
+from cell import BaseCell, ImmuneCell, NaiveUtility
 import numpy as np
+import random as rand
 
-class Grid():
+class GameState():
 
-    def __init__(self, width, height, infection_prob):
+    def __init__(self, width=100, height=100):
         self.width = width
         self.height = height
+        self.cells = []
         self.grid = [[None for i in range(width)] for j in range(height)]
+
+
+    def start(self, infection_prob, repro_prob, die_prob, attack_success=.75, utility=NaiveUtility, numCells=200, numInfected=20, numImmune=20):
+        #creates grid and adds cells randomly to grid and randomly infects some of them
         self.infection_prob = infection_prob
+        self.repro_prob = repro_prob
+        self.die_prob = die_prob
+
+        for i in range(numCells):
+            x = rand.randint(0, self.width-1)
+            y = rand.randint(0, self.height-1)
+            if self.get(x,y) == None:
+                cell = BaseCell(x, y, repro_prob, die_prob, False)
+                self.add(x, y, cell)
+                self.cells.append(cell)
+            else:
+                i -= 1
+        infected = 0
+        while infected < numInfected:
+            i = rand.randint(0, len(self.cells)-1)
+            cell = self.cells[i]
+            if cell != None and not cell.infected:
+                cell.infected = True
+                infected += 1
+        immune = 0
+        while immune < numImmune:
+            i = rand.randint(0, len(self.cells)-1)
+            cell = self.cells[i]
+            if cell != None and not cell.infected and not cell.immune:
+                ic = ImmuneCell(cell.x, cell.y, utility, attack_success, repro=repro_prob, die=die_prob)
+                self.cells[i] = ic
+                self.add(cell.x, cell.y, ic)
+                immune += 1
+
+        return self
+
+
+    def step(self):
+
+        numActivated = 0
+
+        for cell in self.cells:
+            self.moveCell(cell)
+            self.reproduceCell(cell)
+            self.infectCell(cell)
+            numActivated += self.immuneAct(cell)
+            cell = self.die(cell)
+            
+        # self.updateGrid()
+
+        numCells = len(self.cells)
+        numInfected = sum([cell.infected for cell in self.cells])
+        numImmune = sum([cell.immune for cell in self.cells])
+        return numCells, numInfected, numImmune, numActivated
+
+
+    def updateGrid(self):
+        self.grid = [[None for i in range(self.width)] for j in range(self.height)]
+        for cell in self.cells: self.add(cell.x, cell.y, cell)
+
 
     def add(self, x, y, cell):
         self.grid[x][y] = cell
@@ -17,28 +78,18 @@ class Grid():
     def get(self, x, y):
         return self.grid[x][y]
     
-    def update(self, verbose=False):
-
-        numActivated = 0
-
-        for cell in self.getAllCells():
-            self.reproduceCell(cell)
-            self.infectCell(cell)
-            self.die(cell)
-            numActivated += self.immuneAct(cell)
-
-        numCells = len(self.getAllCells())
-        numInfected = sum([cell.infected for cell in self.getAllCells()])
-        numImmune = sum([cell.immune for cell in self.getAllCells()])
-        return numCells, numInfected, numImmune, numActivated
+    def moveCell(self, cell):
+        if cell.immune:
+            cell.move(self.getNeighbors(cell.x, cell.y),
+                      self.width, self.height)
     
     def immuneAct(self, cell):
         if cell.immune:
             attackUtil = cell.util("ATTACK",cell,self)
             passUtil = cell.util("PASS",cell,self)
             if attackUtil > passUtil:
-                self.immuneAttack(cell)
-                return 1
+                return self.immuneAttack(cell)
+
             else: return 0
         return 0
 
@@ -47,16 +98,19 @@ class Grid():
         if bernoulli.rvs(cell.attack_success) == 1:
             for neighbor in neighbors:
                 self.add(neighbor.x,neighbor.y,None)
-        return self
+                if neighbor in self.cells: self.cells.remove(neighbor)
+            return 1
+        return 0
 
     def reproduceCell(self, cell):
         #reproduces cell if random number is less than reproduction probability
         sample = bernoulli.rvs(cell.repro_prob)
         if sample == 1:
-            newCoords = self.getEmptyNeighbor(cell.x, cell.y)
+            newCoords = self.getEmptyNeighbor(cell.x, cell.y) # TODO this is not random
             if newCoords:
-
-                self.add(newCoords[0], newCoords[1], cell.reproduce(newCoords[0], newCoords[1]))
+                newCell = cell.reproduce(newCoords[0], newCoords[1])
+                self.add(newCoords[0], newCoords[1], newCell)
+                self.cells.append(newCell)
 
         return self
 
@@ -68,8 +122,8 @@ class Grid():
                 if neighbor.immune: continue
                 sample = bernoulli.rvs(self.infection_prob)
                 if sample == 1:
-                    self.add(neighbor.x,neighbor.y,BaseCell(neighbor.x,neighbor.y,infected=True))
-
+                    neighbor.infected=True
+                    self.grid[neighbor.x][neighbor.y] = neighbor
         return self
     
     def die(self, cell):
@@ -77,7 +131,7 @@ class Grid():
         sample = bernoulli.rvs(cell.die_prob)
         if sample == 1:
             self.add(cell.x, cell.y, None)
-            return None
+            if cell in self.cells: self.cells.remove(cell)
         return self
     
     
@@ -110,12 +164,7 @@ class Grid():
     
     def getAllCells(self):
         #returns list of all Cell objects in grid
-        cells = []
-        for row in self.grid:
-            for cell in row:
-                if cell != None:
-                    cells.append(cell)
-        return cells
+        return self.cells
     
 
     def __str__(self):
