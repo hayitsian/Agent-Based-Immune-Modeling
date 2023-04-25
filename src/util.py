@@ -5,6 +5,8 @@ import random
 import inspect
 import math
 import numpy as np
+# from gamestate import GameState
+# from cell import BaseCell
 
 def raiseNotDefined():
     fileName = inspect.stack()[1][1]
@@ -37,52 +39,3 @@ def manhattanDistance(pos1, pos2):
 
 
 
-def NaiveUtility(action, cell, grid):
-    neighbors = grid.getNeighbors(cell.x, cell.y)
-    utility = 0
-    if action == "ATTACK":
-        for n in neighbors:
-            if n.infected: utility += 1 * cell.attack_success
-            else: utility -= 1 * cell.attack_success
-    else:
-        for n in neighbors:
-            if n.infected: utility -= 1 * cell.attack_success
-            else: utility += 1 * cell.attack_success
-    return utility
-
-
-
-def SmartUtility(action, cell, grid):
-    neighbors = grid.getNeighbors(cell.x, cell.y, includeEmpty=1)
-    nonEmpty = [neigh for neigh in neighbors if neigh is not None]
-    closeLocal = grid.getLocalCells(cell.x, cell.y)
-    utility = 0
-    if action == "ATTACK":
-        for n in nonEmpty:
-            if n.infected: utility += 1 * cell.attack_success
-            elif n.immune: utility -= 0.5 * cell.attack_success
-            else: utility -= 1.5 * cell.attack_success
-        closeImmune = [cell for cell in closeLocal if cell.immune]
-        closeImmuneActivated = [cell for cell in closeImmune if cell.activated]
-        utility += len(closeImmuneActivated) * 0.03
-    elif action == "MOVE":
-        distDict = {}
-
-        closeInfected = [cell for cell in closeLocal if cell.infected]
-        if len(closeInfected) == 0: return (0, (0,0))
-        for n in closeInfected:
-            emptyNeigh = grid.getEmptyNeighbors(cell.x, cell.y)
-            if len(emptyNeigh) > 0:
-                for newX, newY in emptyNeigh: distDict[(newX, newY)] = np.inf
-                for newX, newY in emptyNeigh:
-                    dist = manhattanDistance((newX, newY), (n.x, n.y))
-                    if dist < distDict[(newX, newY)]: distDict[(newX, newY)] = dist
-            else: return (0, (0,0))
-
-        return (0.8, min(distDict, key=distDict.get))
-    
-    else: # for "PASS"
-        for n in nonEmpty:
-            if n.infected: utility -= 1
-            else: utility += 1
-    return utility

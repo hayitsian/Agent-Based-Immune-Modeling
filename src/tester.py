@@ -16,17 +16,36 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-INFECT_PROB = 0.05
-REPRODUCE_PROB = 0.09
-DEATH_PROB = 0.06
-ATTACK_SUCCESS = 0.85
-INIT_HEALTHY = 30
-INIT_INFECTED = 5
-INIT_IMMUNE = 7
-WIDTH = 30
-HEIGHT = 30
-EPOCHS = 250
-VERBOSE = False
+
+def errorPlot(EPOCHS, FIGURE_TITLE, FIGURE_NAME, _labels, data):
+    for i in range(len(data)):
+        plt.errorbar(list(range(EPOCHS+1)), np.mean(data[i], axis=0), yerr=sem(data[i]), label=_labels[i])
+
+    plt.title(FIGURE_TITLE)
+    plt.xlabel("Steps")
+    plt.ylabel("# Cells")
+    plt.legend()
+    plt.savefig(FIGURE_NAME)
+    plt.close()
+
+
+
+params = {}
+params["INFECT_PROB"] = 0.035
+params["REPRODUCE_PROB"] = 0.05
+params["DEATH_PROB"] = 0.03
+params["ATTACK_SUCCESS"] = 0.85
+params["IMMUNE_CONSTANT"] = 0.9
+params["HELPER_BOOST"] = 1.2
+params["INIT_HEALTHY"] = 50
+params["INIT_INFECTED"] = 5
+params["INIT_IMMUNE"] = 5
+params["INIT_HELPER"] = 5
+params["WIDTH"] = 50
+params["HEIGHT"] = 50
+params["EPOCHS"] = 1500
+params["PLOT"] = False
+params["VERBOSE"] = False
 
 NUM_SIMS = 10
 
@@ -40,37 +59,30 @@ startTime = default_timer()
 
 res = Parallel(n_jobs=-3, backend="threading", verbose=50)(delayed(main.main)() for i in range(NUM_SIMS))
 
-for i in range(NUM_SIMS):
+result = np.array(res)
 
-    r = res[i]
-    cellCount = r[0]
-    infCellCount = r[1]
-    immCellCount = r[2]
-    accImmCellCount = r[3]
+data = []
 
-    supercellCount.append(cellCount)
-    superinfCellCount.append(infCellCount)
-    superimmCellCount.append(immCellCount)
-    superaccImmCellCount.append(accImmCellCount)
-    superHealthyCellCount.append(np.array(cellCount) - np.array(infCellCount) - np.array(immCellCount))
+for i in range(result.shape[1]):
+    data.append(result[:,i])
 
+dataCounts = data[0:6]
+dataActions = data[6:]
+
+countsLabels = ["Total cell count", "Infected cell count", "Immune cell count", "Healthy cell count", "Helper cell count", "Effector cell count"]
+actionsLabels = ["Activated cell count", "Reproduced cell count", "Moved cell count", "Infected cell count", "Died cell count", "Effected cell count"]
 
 time = default_timer() - startTime
 print(f"Simulation took: {time}")
 
-plt.errorbar(list(range(EPOCHS+1)), np.mean(supercellCount, axis=0), yerr=sem(supercellCount), label="Total cell count")
-plt.errorbar(list(range(EPOCHS+1)), np.mean(superinfCellCount, axis=0), yerr=sem(superinfCellCount), label="Infected cell count")
-plt.errorbar(list(range(EPOCHS+1)), np.mean(superimmCellCount, axis=0), yerr=sem(superimmCellCount), label="Immune cell count")
-plt.errorbar(list(range(EPOCHS+1)), np.mean(superHealthyCellCount, axis=0), yerr=sem(superHealthyCellCount), label="Healthy cell count")
-
-
-FIGURE_TITLE = f"Cell counts over {NUM_SIMS} iterations {EPOCHS} steps {WIDTH}x{HEIGHT} grid\nInfectProb: {INFECT_PROB} ReproProb: {REPRODUCE_PROB} DeathProb: {DEATH_PROB} AttackSuccess: {ATTACK_SUCCESS}\nWith smartwalk & smartactivation immune cell movement"
+FIGURE_TITLE = f"Cell counts over {NUM_SIMS} iterations {params['EPOCHS']} steps {params['WIDTH']}x{params['HEIGHT']} grid\nInfectProb: {params['INFECT_PROB']} ReproProb: {params['REPRODUCE_PROB']} DeathProb: {params['DEATH_PROB']} AttackSuccess: {params['ATTACK_SUCCESS']}\nWith naiveUtility immune cell movement"
 FIGURE_NAME = FIGURE_TITLE.replace("\n", " ") + ".png"
 
+errorPlot(params["EPOCHS"], FIGURE_TITLE, FIGURE_NAME, countsLabels, dataCounts)
 
-plt.title(FIGURE_TITLE)
-plt.xlabel("Steps")
-plt.ylabel("Cell count")
-plt.legend()
-plt.savefig(FIGURE_NAME)
+FIGURE_TITLE = f"Cell actions over {NUM_SIMS} iterations {params['EPOCHS']} steps {params['WIDTH']}x{params['HEIGHT']} grid\nInfectProb: {params['INFECT_PROB']} ReproProb: {params['REPRODUCE_PROB']} DeathProb: {params['DEATH_PROB']} AttackSuccess: {params['ATTACK_SUCCESS']}\nWith naiveUtility immune cell movement"
+FIGURE_NAME = FIGURE_TITLE.replace("\n", " ") + ".png"
+
+errorPlot(params["EPOCHS"], FIGURE_TITLE, FIGURE_NAME, actionsLabels, dataActions)
+
 
