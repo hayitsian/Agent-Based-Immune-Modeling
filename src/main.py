@@ -23,14 +23,15 @@ def main(INFECT_PROB = 0.035,
     REPRODUCE_PROB = 0.05,
     DEATH_PROB = 0.03,
     ATTACK_SUCCESS = 0.85,
-    IMMUNE_CONSTANT = 0.9,
+    IMMUNE_CONSTANT = 0.95,
     HELPER_BOOST = 1.2,
-    INIT_HEALTHY = 50,
-    INIT_INFECTED = 5,
-    INIT_IMMUNE = 5,
-    INIT_HELPER = 5,
-    WIDTH = 50,
-    HEIGHT = 50,
+    BOOST_COUNT = 5,
+    INIT_HEALTHY = 150,
+    INIT_INFECTED = 20,
+    INIT_IMMUNE = 20,
+    INIT_HELPER = 20,
+    WIDTH = 150,
+    HEIGHT = 150,
     EPOCHS = 1500,
     PLOT = False,
     VERBOSE = False
@@ -42,7 +43,7 @@ def main(INFECT_PROB = 0.035,
                  attack_success=ATTACK_SUCCESS, numCells=INIT_HEALTHY, 
                  numInfected=INIT_INFECTED, numImmune=INIT_IMMUNE,
                  numHelper = INIT_HELPER, immune_constant=IMMUNE_CONSTANT,
-                 helper_boost=HELPER_BOOST)
+                 helper_boost=HELPER_BOOST, boost_count=BOOST_COUNT)
 
     if VERBOSE: print("Initial Conditions:" + "\n" + "Number of living Cells: " + str(INIT_HEALTHY) + "\n" + "Number of infected Cells: " 
                       + str(INIT_INFECTED) + "\n" + "Number of immune Cells: " + str(INIT_IMMUNE) + "\n")
@@ -63,7 +64,9 @@ def main(INFECT_PROB = 0.035,
     moveCellCount = []
     infTurnCellCount = []
     dieCellCount = []
-    effectedCellCount = []
+    killedCellCount = []
+    boostedCellCount = []
+    suppressedCellCount = []
 
     cellCount.append(INIT_HEALTHY)
     infCellCount.append(INIT_INFECTED)
@@ -77,7 +80,9 @@ def main(INFECT_PROB = 0.035,
     moveCellCount.append(0)
     infTurnCellCount.append(0)
     dieCellCount.append(0)
-    effectedCellCount.append(0)
+    killedCellCount.append(0)
+    boostedCellCount.append(0)
+    suppressedCellCount.append(0)
 
     startTime = default_timer()
 
@@ -87,7 +92,7 @@ def main(INFECT_PROB = 0.035,
 
         numSteps += 1
 
-        numCells, numInfected, numImmune, numHelper, _numReproduce, _numMoved, _numInfectedTurn, _numDied, _numActivated, _numEffected = game.step()
+        numCells, numInfected, numImmune, numHelper, _numReproduce, _numMoved, _numInfectedTurn, _numDied, _numActivated, _numKilled, _numBoosted, _numSuppressed = game.step()
         numHealthy = numCells - numImmune - numInfected
         numEffector = numImmune - numHelper
 
@@ -103,7 +108,9 @@ def main(INFECT_PROB = 0.035,
         if VERBOSE: print(f"Number of Cells Infected this turn: {_numInfectedTurn}")
         if VERBOSE: print(f"Number of Cells who Died: {_numDied}")
         if VERBOSE: print(f"Number of Cells Activated: {_numActivated}")
-        if VERBOSE: print(f"Number of Cells Effected on: {_numEffected}")
+        if VERBOSE: print(f"Number of Cells Killed: {_numKilled}")
+        if VERBOSE: print(f"Number of Cells Boosted: {_numBoosted}")
+        if VERBOSE: print(f"Number of Cells Suppressed: {_numSuppressed}")
         if VERBOSE: print(str(game) + "\n", end='\r')
 
         cellCount.append(numCells)
@@ -118,26 +125,28 @@ def main(INFECT_PROB = 0.035,
         moveCellCount.append(_numMoved)
         infTurnCellCount.append(_numInfectedTurn)
         dieCellCount.append(_numDied)
-        effectedCellCount.append(_numEffected)
+        killedCellCount.append(_numKilled)
+        boostedCellCount.append(_numBoosted)
+        suppressedCellCount.append(_numSuppressed)
 
     time = default_timer() - startTime
     if VERBOSE: print(f"Simulation took: {time}")
 
-    FIGURE_TITLE = f"Cell counts over {EPOCHS} steps {WIDTH}x{HEIGHT} grid\nInfectProb: {INFECT_PROB} ReproProb: {REPRODUCE_PROB} DeathProb: {DEATH_PROB} AttackSuccess: {ATTACK_SUCCESS}\nWith naiveUtility immune cell movement"
+    FIGURE_TITLE = f"Cell counts over {EPOCHS} steps {WIDTH}x{HEIGHT} grid\nInfectProb: {INFECT_PROB} ReproProb: {REPRODUCE_PROB} DeathProb: {DEATH_PROB} AttackSuccess: {ATTACK_SUCCESS}\nWith smartUtility immune cell movement"
     FIGURE_NAME = FIGURE_TITLE.replace("\n", " ") + ".png"
     labels = ["Total cell count", "Infected cell count", "Immune cell count", "Healthy cell count", "Helper cell count", "Effector cell count"]
     data = [cellCount, infCellCount, immCellCount, healthyCellCount, helperCellCount, effectorCellCount]
 
     if PLOT: plot(EPOCHS, FIGURE_TITLE, FIGURE_NAME, labels, data)
 
-    FIGURE_TITLE = f"Cell actions over {EPOCHS} steps {WIDTH}x{HEIGHT} grid\nInfectProb: {INFECT_PROB} ReproProb: {REPRODUCE_PROB} DeathProb: {DEATH_PROB} AttackSuccess: {ATTACK_SUCCESS}\nWith naiveUtility immune cell movement"
+    FIGURE_TITLE = f"Cell actions over {EPOCHS} steps {WIDTH}x{HEIGHT} grid\nInfectProb: {INFECT_PROB} ReproProb: {REPRODUCE_PROB} DeathProb: {DEATH_PROB} AttackSuccess: {ATTACK_SUCCESS}\nWith smartUtility immune cell movement"
     FIGURE_NAME = FIGURE_TITLE.replace("\n", " ") + ".png"
-    labels = ["Activated cell count", "Reproduced cell count", "Moved cell count", "Infected cell count", "Died cell count", "Effected cell count"]
-    data = [accImmCellCount, reprCellCount, moveCellCount, infTurnCellCount, dieCellCount, effectedCellCount]
+    labels = ["Activated cell count", "Reproduced cell count", "Moved cell count", "Infected cell count", "Died cell count", "Killed cell count", "Boosted cell count", "Suppressed cell count"]
+    data = [accImmCellCount, reprCellCount, moveCellCount, infTurnCellCount, dieCellCount, killedCellCount, boostedCellCount, suppressedCellCount]
 
     if PLOT: plot(EPOCHS, FIGURE_TITLE, FIGURE_NAME, labels, data)
 
 
-    return [cellCount, infCellCount, immCellCount, healthyCellCount, helperCellCount, effectorCellCount, accImmCellCount, reprCellCount, moveCellCount, infTurnCellCount, dieCellCount, effectedCellCount]
+    return [cellCount, infCellCount, immCellCount, healthyCellCount, helperCellCount, effectorCellCount, accImmCellCount, reprCellCount, moveCellCount, infTurnCellCount, dieCellCount, killedCellCount, boostedCellCount]
 
 main()

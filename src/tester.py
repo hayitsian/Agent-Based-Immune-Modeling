@@ -35,14 +35,14 @@ params["INFECT_PROB"] = 0.035
 params["REPRODUCE_PROB"] = 0.05
 params["DEATH_PROB"] = 0.03
 params["ATTACK_SUCCESS"] = 0.85
-params["IMMUNE_CONSTANT"] = 0.9
+params["IMMUNE_CONSTANT"] = 0.95
 params["HELPER_BOOST"] = 1.2
-params["INIT_HEALTHY"] = 50
-params["INIT_INFECTED"] = 5
-params["INIT_IMMUNE"] = 5
-params["INIT_HELPER"] = 5
-params["WIDTH"] = 50
-params["HEIGHT"] = 50
+params["INIT_HEALTHY"] = 150
+params["INIT_INFECTED"] = 20
+params["INIT_IMMUNE"] = 20
+params["INIT_HELPER"] = 20
+params["WIDTH"] = 150
+params["HEIGHT"] = 150
 params["EPOCHS"] = 1500
 params["PLOT"] = False
 params["VERBOSE"] = False
@@ -70,17 +70,17 @@ dataCounts = data[0:6]
 dataActions = data[6:]
 
 countsLabels = ["Total cell count", "Infected cell count", "Immune cell count", "Healthy cell count", "Helper cell count", "Effector cell count"]
-actionsLabels = ["Activated cell count", "Reproduced cell count", "Moved cell count", "Infected cell count", "Died cell count", "Effected cell count"]
+actionsLabels = ["Activated cell count", "Reproduced cell count", "Moved cell count", "Infected cell count", "Died cell count", "Killed cell count", "Boosted cell count", "Suppressed cell count"]
 
 time = default_timer() - startTime
 print(f"Simulation took: {time}")
 
-FIGURE_TITLE = f"Cell counts over {NUM_SIMS} iterations {params['EPOCHS']} steps {params['WIDTH']}x{params['HEIGHT']} grid\nInfectProb: {params['INFECT_PROB']} ReproProb: {params['REPRODUCE_PROB']} DeathProb: {params['DEATH_PROB']} AttackSuccess: {params['ATTACK_SUCCESS']}\nWith naiveUtility immune cell movement"
+FIGURE_TITLE = f"Cell counts over {NUM_SIMS} iterations {params['EPOCHS']} steps {params['WIDTH']}x{params['HEIGHT']} grid\nInfectProb: {params['INFECT_PROB']} ReproProb: {params['REPRODUCE_PROB']} DeathProb: {params['DEATH_PROB']} AttackSuccess: {params['ATTACK_SUCCESS']}\nWith smartUtility immune cell movement"
 FIGURE_NAME = FIGURE_TITLE.replace("\n", " ") + ".png"
 
 errorPlot(params["EPOCHS"], FIGURE_TITLE, FIGURE_NAME, countsLabels, dataCounts)
 
-FIGURE_TITLE = f"Cell actions over {NUM_SIMS} iterations {params['EPOCHS']} steps {params['WIDTH']}x{params['HEIGHT']} grid\nInfectProb: {params['INFECT_PROB']} ReproProb: {params['REPRODUCE_PROB']} DeathProb: {params['DEATH_PROB']} AttackSuccess: {params['ATTACK_SUCCESS']}\nWith naiveUtility immune cell movement"
+FIGURE_TITLE = f"Cell actions over {NUM_SIMS} iterations {params['EPOCHS']} steps {params['WIDTH']}x{params['HEIGHT']} grid\nInfectProb: {params['INFECT_PROB']} ReproProb: {params['REPRODUCE_PROB']} DeathProb: {params['DEATH_PROB']} AttackSuccess: {params['ATTACK_SUCCESS']}\nWith smartUtility immune cell movement"
 FIGURE_NAME = FIGURE_TITLE.replace("\n", " ") + ".png"
 
 errorPlot(params["EPOCHS"], FIGURE_TITLE, FIGURE_NAME, actionsLabels, dataActions)

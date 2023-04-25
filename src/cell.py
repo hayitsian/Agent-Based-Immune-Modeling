@@ -19,6 +19,7 @@ class BaseCell():
         # identifiers
         self.immune = False
         self.helper = False
+        self.boosted = False
     
     def decrementCounter(self):
         if self.counter == 1:
@@ -30,13 +31,16 @@ class BaseCell():
     def revert(self):
         if self._boost > 0.:
             self.repro_prob /= self._boost
+            self.boosted = False
             self._boost = 0.0
 
     def boost(self, boost:float, count:int):
-        if boost > 0. and count > 0:
+        if boost > 0. and count > 0 and not self.boosted:
             self.counter = count 
             self._boost = boost
+            self.boosted = True
             self.repro_prob *= boost
+            if self.repro_prob > 1.0: self.repro_prob=1.0
 
     def reproduce(self, newX, newY):
         #reproduces cell if random number is less than reproduction probability
@@ -47,11 +51,6 @@ class BaseCell():
 
         return newCell
     
-    def boostReproduction(self):
-        if not self.helped:
-            self.helped = True
-            self.repro_prob *= 2
-
     def __str__(self):
         if self.infected: return "x"
         return "o"
@@ -60,26 +59,19 @@ class BaseCell():
 class ImmuneCell(BaseCell):
 
     def __init__(self, x, y, util, attack_success, immune_constant=0.75, repro=.1, die=.05, infected=False):
-        super().__init__(x, y, repro*immune_constant, die*immune_constant, infected)
+        super().__init__(x, y, repro*immune_constant, die, infected)
         self.immune = True
         self.util = util #utility of cell. Should be a function that takes in an action, a ImmuneCell, and a Grid
         self.attack_success = attack_success #probability of attacking neighbor cells successfully
         self.immuned_constant = immune_constant
         self.activated = False
         self.helper = False
-    
+
     def revert(self):
         if self._boost > 0.:
-            self.repro_prob /= self._boost
-
+            self.repro_prob /= 2*self._boost
+            self.boosted = False
             self._boost = 0.0
-
-    def boost(self, boost:float, count:int):
-        if boost > 0. and count > 0:
-            self.counter = count
-            self._boost = boost
-            self.repro_prob *= boost
-            self.attack_success *= boost
 
 
     def _movementConditions(self, newX, newY, width, height, obsPoints):
@@ -109,7 +101,7 @@ class ImmuneCell(BaseCell):
             return 1
 
         return 0
-    
+
     def moveTo(self, x, y):
         self.x = x
         self.y = y
@@ -121,12 +113,14 @@ class ImmuneCell(BaseCell):
 
 class HelperImmuneCell(ImmuneCell):
 
-    def __init__(self, x, y, attack_success, helper_boost=1.25, immune_constant=0.75, repro=.1, die=.05, infected=False):
+    def __init__(self, x, y, attack_success, helper_boost=1.25, boost_count=5, immune_constant=1.0, repro=.1, die=.05, infected=False):
         super().__init__(x, y, HelperUtility, attack_success, immune_constant, repro, die, infected)
         self.helper_boost = helper_boost
+        self.boost_count = boost_count
         self.activated = False
         self.helper = True
-
+        self.suppress = False
+        self.support = False
 
     def __str__(self):
         return "h"
