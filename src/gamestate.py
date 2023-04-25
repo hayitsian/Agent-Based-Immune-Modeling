@@ -1,20 +1,23 @@
 
 from scipy.stats import bernoulli
-from cell import BaseCell, ImmuneCell, NaiveUtility
+from cell import BaseCell, ImmuneCell
+from util import NaiveUtility, SmartUtility
 import numpy as np
 import random as rand
 from copy import deepcopy
+from itertools import chain
 
 class GameState():
 
-    def __init__(self, width=100, height=100):
+    def __init__(self, width=100, height=100, localRadius=None):
         self.width = width
         self.height = height
         self.cells = []
         self.grid = [[None for i in range(width)] for j in range(height)]
+        if localRadius is None: self.localRadius = self.width / 10
+        else: self.localRadius = localRadius
 
-
-    def start(self, infection_prob, repro_prob, die_prob, attack_success=.75, utility=NaiveUtility, numCells=200, numInfected=20, numImmune=20):
+    def start(self, infection_prob, repro_prob, die_prob, attack_success=.75, utility=SmartUtility, numCells=200, numInfected=20, numImmune=20):
         #creates grid and adds cells randomly to grid and randomly infects some of them
         self.infection_prob = infection_prob
         self.repro_prob = repro_prob
@@ -61,28 +64,29 @@ class GameState():
     def step(self):
 
         numActivated = 0
-
+        
         for cell in self.cells:
             
-            res = self.moveCell(cell)
-            if res: print("Cell moved")
+            # resMove = self.moveCell(cell)
+            # if res: print("Cell moved")
             
-            res = self.reproduceCell(cell)
-            if res: print("Cell reproduced")
+            resRepr = self.reproduceCell(cell)
+            # if res: print("Cell reproduced")
             
-            res = self.infectCell(cell)
-            if res: print(f"Cells infected: {res}")
+            resInf = self.infectCell(cell)
+            # if res: print(f"Cells infected: {res}")
             
-            res = self.immuneAct(cell)
-            numActivated += res
-            if res: print("Cell activated")
+            resImm = self.immuneAct(cell)
+            numActivated += resImm
+            # if res: print("Cell activated")
 
-            res = self.die(cell)
-            if res: print("Cell died")
+            resDie = self.die(cell)
+            # if res: print("Cell died")
 
             numCellsList = len(self.cells)
             numCellsGrid = len(self.getAllCells())
-            assert numCellsList == numCellsGrid, f"Cells List {numCellsList}, cells grid {numCellsGrid}"
+
+            assert numCellsList == numCellsGrid, f"Cells List {numCellsList}, cells grid {numCellsGrid}, movement? {resMove}, reproduce? {resRepr}, infected? {resInf}, activated? {resImm}, died? {resDie}"
             
         # self.updateGrid()
 
@@ -99,7 +103,10 @@ class GameState():
 
 
     def add(self, x, y, cell):
+        if cell in self.getAllCells():
+            return
         self.grid[x][y] = cell
+
 
     def get(self, x, y):
         return self.grid[x][y]
@@ -108,20 +115,31 @@ class GameState():
         if cell.immune:
             oldX = deepcopy(cell.x)
             oldY = deepcopy(cell.y)
-            result = cell.move(self.getNeighbors(cell.x, cell.y),
+            result = cell.move(self.getNeighbors(oldX, oldY),
                       self.width, self.height)
             if result:
                 # update the grid
                 self.add(oldX, oldY, None)
                 self.add(cell.x, cell.y, cell)
+            return result
+        return 0
     
     def immuneAct(self, cell):
         if cell.immune:
+            if cell.activated: cell.activated = False
             attackUtil = cell.util("ATTACK",cell,self)
             passUtil = cell.util("PASS",cell,self)
-            if attackUtil > passUtil:
+            moveUtil, pos = cell.util("MOVE",cell,self)
+            if attackUtil > passUtil and attackUtil > moveUtil:
+                cell.activated = True
+                if cell.helper:
+                    # do something else:
+                    return
                 return self.immuneAttack(cell)
-
+            elif moveUtil > passUtil and moveUtil > attackUtil:
+                self.add(cell.x, cell.y, None)
+                cell.moveTo(pos[0], pos[1])
+                self.add(cell.x, cell.y, cell)
             else: return 0
         return 0
 
@@ -130,7 +148,7 @@ class GameState():
         if bernoulli.rvs(cell.attack_success) == 1:
             for neighbor in neighbors:
                 self.add(neighbor.x,neighbor.y,None)
-                if neighbor in self.cells: self.cells.remove(neighbor) # NOTE: this could be an issue
+                self.cells.remove(neighbor) # NOTE: this could be an issue
             return 1
         return 0
 
@@ -138,8 +156,9 @@ class GameState():
         #reproduces cell if random number is less than reproduction probability
         sample = bernoulli.rvs(cell.repro_prob)
         if sample == 1:
-            newCoords = self.getEmptyNeighbor(cell.x, cell.y) # TODO this is not random
-            if newCoords:
+            neighs = self.getEmptyNeighbors(cell.x, cell.y)
+            if len(neighs) > 0:
+                newCoords = rand.choice(neighs) # TODO this is not random
                 newCell = cell.reproduce(newCoords[0], newCoords[1])
                 self.add(newCoords[0], newCoords[1], newCell)
                 self.cells.append(newCell)
@@ -155,8 +174,9 @@ class GameState():
                 if neighbor.immune: continue
                 sample = bernoulli.rvs(self.infection_prob)
                 if sample == 1:
-                    if neighbor in self.cells: self.cells.remove(neighbor)
+                    
                     if not neighbor.infected:
+                        if neighbor in self.cells: self.cells.remove(neighbor)
                         neighbor.infected=True
                         self.cells.append(neighbor)
                         self.add(neighbor.x, neighbor.y, neighbor)
@@ -172,37 +192,59 @@ class GameState():
             return 1
         return 0
     
-    
-    def getEmptyNeighbor(self, x, y):
-        #checks neighbors for an empty space around x and y coordinates
-        #returns coordinates of empty space or False if none are found
-        #if x is at max width or y at max height, does not check outside of range
-        if y+1 < self.height and self.grid[x][y+1] == None:
-            return (x, y+1)
-        elif y-1 >= 0 and self.grid[x][y-1] == None:
-            return (x, y-1)
-        elif x+1 < self.width and self.grid[x+1][y] == None:
-            return (x+1, y)
-        elif x-1 >= 0 and self.grid[x-1][y] == None:
-            return (x-1, y)
-        return False
-    
-    def getNeighbors(self, x, y):
+    def getLocalCells(self, x, y): # NOTE keep in mind this radius
+
+        lowerX = x-self.localRadius
+        if lowerX < 0: lowerX = 0
+
+        higherX = x+self.localRadius
+        if higherX >= self.width: higherX = self.width - 1
+
+        lowerY = y-self.localRadius
+        if lowerY < 0: lowerY = 0
+
+        higherY = y+self.localRadius
+        if higherY >= self.height: higherY = self.height - 1
+
+        lowerX = int(lowerX)
+        lowerY = int(lowerY)
+        higherX = int(higherX)
+        higherY = int(higherY)
+
+
+        subGrid = self.grid[lowerX:higherX][lowerY:higherY]
+        return [cell for cell in list(chain(*subGrid)) if cell is not None]
+
+    def getEmptyNeighbors(self, x, y):
+        neighbors = []
+        if y+1 < self.height and self.grid[x][y+1] is None:
+            neighbors.append((x, y+1))
+        if y-1 >= 0 and self.grid[x][y-1] is None:
+            neighbors.append((x, y-1))
+        if x-1 >= 0 and self.grid[x-1][y] is None:
+            neighbors.append((x-1, y))
+        if x+1 < self.width and self.grid[x+1][y] is None:
+            neighbors.append((x+1, y))
+        return neighbors
+
+    def getNeighbors(self, x, y, includeEmpty=0):
         #returns list of neighbor Cell objects
         neighbors = []
-        if y+1 < self.height and self.grid[x][y+1] != None:
+        if y+1 < self.height:
             neighbors.append(self.grid[x][y+1])
-        if y-1 >= 0 and self.grid[x][y-1] != None:
+        if y-1 >= 0:
             neighbors.append(self.grid[x][y-1])
-        if x+1 < self.width and self.grid[x+1][y] != None:
+        if x+1 < self.width:
             neighbors.append(self.grid[x+1][y])
-        if x-1 >= 0 and self.grid[x-1][y] != None:
+        if x-1 >= 0:
             neighbors.append(self.grid[x-1][y])
+        if not includeEmpty: return [neigh for neigh in neighbors if neigh is not None]
         return neighbors
     
+
     def getAllCells(self):
         #returns list of all Cell objects in grid
-        return [cell for cell in self.grid if cell is not None]
+        return [cell for cell in list(chain(*self.grid)) if cell is not None]
     
 
     def __str__(self):

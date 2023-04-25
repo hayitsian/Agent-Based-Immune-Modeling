@@ -11,6 +11,7 @@ from joblib import Parallel, delayed
 from timeit import default_timer
 
 from scipy.stats import sem
+import numpy as np
 
 import matplotlib.pyplot as plt
 
@@ -18,13 +19,13 @@ import matplotlib.pyplot as plt
 INFECT_PROB = 0.05
 REPRODUCE_PROB = 0.09
 DEATH_PROB = 0.06
-ATTACK_SUCCESS = 0.75
-INIT_HEALTHY = 200
-INIT_INFECTED = 20
-INIT_IMMUNE = 20
-WIDTH = 100
-HEIGHT = 100
-EPOCHS = 500
+ATTACK_SUCCESS = 0.85
+INIT_HEALTHY = 30
+INIT_INFECTED = 5
+INIT_IMMUNE = 7
+WIDTH = 30
+HEIGHT = 30
+EPOCHS = 250
 VERBOSE = False
 
 NUM_SIMS = 10
@@ -33,6 +34,7 @@ supercellCount = []
 superinfCellCount = []
 superimmCellCount = []
 superaccImmCellCount = []
+superHealthyCellCount = []
 
 startTime = default_timer()
 
@@ -50,6 +52,8 @@ for i in range(NUM_SIMS):
     superinfCellCount.append(infCellCount)
     superimmCellCount.append(immCellCount)
     superaccImmCellCount.append(accImmCellCount)
+    superHealthyCellCount.append(np.array(cellCount) - np.array(infCellCount) - np.array(immCellCount))
+
 
 time = default_timer() - startTime
 print(f"Simulation took: {time}")
@@ -57,10 +61,10 @@ print(f"Simulation took: {time}")
 plt.errorbar(list(range(EPOCHS+1)), np.mean(supercellCount, axis=0), yerr=sem(supercellCount), label="Total cell count")
 plt.errorbar(list(range(EPOCHS+1)), np.mean(superinfCellCount, axis=0), yerr=sem(superinfCellCount), label="Infected cell count")
 plt.errorbar(list(range(EPOCHS+1)), np.mean(superimmCellCount, axis=0), yerr=sem(superimmCellCount), label="Immune cell count")
-plt.errorbar(list(range(EPOCHS+1)), np.mean(superaccImmCellCount, axis=0), yerr=sem(superaccImmCellCount), label="Activated Immune cell count")
+plt.errorbar(list(range(EPOCHS+1)), np.mean(superHealthyCellCount, axis=0), yerr=sem(superHealthyCellCount), label="Healthy cell count")
 
 
-FIGURE_TITLE = f"Cell counts over {NUM_SIMS} iterations {EPOCHS} steps {WIDTH}x{HEIGHT} grid\nInfectProb: {INFECT_PROB} ReproProb: {REPRODUCE_PROB} DeathProb: {DEATH_PROB} AttackSuccess: {ATTACK_SUCCESS}\nWith randomwalk immune cell movement"
+FIGURE_TITLE = f"Cell counts over {NUM_SIMS} iterations {EPOCHS} steps {WIDTH}x{HEIGHT} grid\nInfectProb: {INFECT_PROB} ReproProb: {REPRODUCE_PROB} DeathProb: {DEATH_PROB} AttackSuccess: {ATTACK_SUCCESS}\nWith smartwalk & smartactivation immune cell movement"
 FIGURE_NAME = FIGURE_TITLE.replace("\n", " ") + ".png"
 
 
