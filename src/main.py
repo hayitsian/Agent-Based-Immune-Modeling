@@ -5,7 +5,7 @@ import random as rand
 import numpy as np
 import matplotlib.pyplot as plt
 from timeit import default_timer
-from cellAgents import NaiveUtility, SmartUtility, HelperUtility
+from cellAgents import NaiveUtility, SmartUtility
 
 def plot(EPOCHS, FIGURE_TITLE, FIGURE_NAME, _labels, data):
     for i in range(len(data)):
@@ -30,6 +30,9 @@ def main(INFECT_PROB = 0.035,
     INIT_INFECTED = 8,
     INIT_EFFECTOR = 8,
     INIT_HELPER = 8,
+    AUTOCRINE_WINDOW = 3,
+    PARACRINE_WINDOW = 8,
+    ENDOCRINE_WINDOW = 12,
     WIDTH = 50,
     HEIGHT = 50,
     EPOCHS = 2500,
@@ -41,7 +44,9 @@ def main(INFECT_PROB = 0.035,
     INIT_HEALTHY = INIT_CELLS - INIT_IMMUNE - INIT_HELPER - INIT_INFECTED
 
 
-    game = GameState(WIDTH, HEIGHT, effectorUtility=NaiveUtility, helperUtility=HelperUtility)
+    game = GameState(WIDTH, HEIGHT, utility=NaiveUtility,
+                     autocrineWindow = AUTOCRINE_WINDOW, paracrineWindow = PARACRINE_WINDOW,
+                     endocrineWindow = ENDOCRINE_WINDOW)
 
     game.start(INFECT_PROB, REPRODUCE_PROB, DEATH_PROB, 
                  attack_success=ATTACK_SUCCESS, numCells=INIT_CELLS, 
@@ -49,7 +54,7 @@ def main(INFECT_PROB = 0.035,
                  numHelper = INIT_HELPER, immune_constant=IMMUNE_CONSTANT,
                  helper_boost=HELPER_BOOST, boost_count=BOOST_COUNT)
 
-    if VERBOSE: print("Initial Conditions:" + "\n" + "Number of living Cells: " + str(INIT_HEALTHY) + "\n" + "Number of infected Cells: " 
+    if VERBOSE: print("Initial Conditions:" + "\n" + "Number of healthy Cells: " + str(INIT_HEALTHY) + "\n" + "Number of infected Cells: " 
                       + str(INIT_INFECTED) + "\n" + "Number of immune Cells: " + str(INIT_IMMUNE) + "\n")
     if VERBOSE: print("Grid size: " + str(game.width) + "x" + str(game.height) + "\n")
     if VERBOSE: print(str(game) + "\n", end='\r')
