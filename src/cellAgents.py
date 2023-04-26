@@ -64,8 +64,8 @@ def SmartUtility(action, cell, grid):
             for newX, newY in neighs:
                 dist = util.manhattanDistance((newX, newY), (n.x, n.y))
                 if dist < distDict[(newX, newY)]: distDict[(newX, newY)] = dist
-
-        return (0.8, min(distDict, key=distDict.get))
+        if min(distDict.values()) == 0.0: return (0, (0,0))
+        return (0.8 * 1./min(distDict.values()), min(distDict, key=distDict.get))
     
     else: # for "PASS"
         return -np.inf

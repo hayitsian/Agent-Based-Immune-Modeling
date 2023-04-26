@@ -26,15 +26,15 @@ def main(INFECT_PROB = 0.035,
     IMMUNE_CONSTANT = 0.95,
     HELPER_BOOST = 1.2,
     BOOST_COUNT = 5,
-    INIT_HEALTHY = 150,
-    INIT_INFECTED = 20,
-    INIT_IMMUNE = 20,
-    INIT_HELPER = 20,
-    WIDTH = 150,
-    HEIGHT = 150,
+    INIT_HEALTHY = 60,
+    INIT_INFECTED = 10,
+    INIT_IMMUNE = 10,
+    INIT_HELPER = 10,
+    WIDTH = 50,
+    HEIGHT = 50,
     EPOCHS = 1500,
-    PLOT = False,
-    VERBOSE = False
+    PLOT = True,
+    VERBOSE = True
     ):
 
     game = GameState(WIDTH, HEIGHT)

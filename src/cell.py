@@ -67,12 +67,6 @@ class ImmuneCell(BaseCell):
         self.activated = False
         self.helper = False
 
-    def revert(self):
-        if self._boost > 0.:
-            self.repro_prob /= 2*self._boost
-            self.boosted = False
-            self._boost = 0.0
-
 
     def _movementConditions(self, newX, newY, width, height, obsPoints):
         return width > newX >= 0 and height > newY >= 0 and (newX, newY) not in obsPoints
