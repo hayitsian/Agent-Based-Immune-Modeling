@@ -65,7 +65,7 @@ def SmartUtility(action, cell, grid):
                 dist = util.manhattanDistance((newX, newY), (n.x, n.y))
                 if dist < distDict[(newX, newY)]: distDict[(newX, newY)] = dist
         if min(distDict.values()) == 0.0: return (0, (0,0))
-        return (0.8 * 1./min(distDict.values()), min(distDict, key=distDict.get))
+        return (MOVE_CONSTANT * 1./min(distDict.values()), min(distDict, key=distDict.get))
     
     else: # for "PASS"
         return -np.inf
@@ -84,7 +84,7 @@ def HelperUtility(action, cell, grid):
     numInf = len([cell for cell in localCells if cell.infected])
     numHealthy = numCells - numImmune - numInf
 
-    MOVE_CONSTANT = 0.01
+    MOVE_CONSTANT = 0.05
     density = float(numCells) / float(grid.localRadius**2)
 
     # TODO incorporate % activated immune cells
@@ -92,7 +92,7 @@ def HelperUtility(action, cell, grid):
     utility = 0
 
     if action == "ATTACK":
-        if numCells>0: utility += (float(numInf) / float(numCells)) * density
+        if numCells>0: utility += (2.5* float(numInf) / float(numCells)) * density
 
     elif action == "PASS":
         if numCells>0: utility += (float(numHealthy) / float(numCells)) * density
@@ -117,8 +117,8 @@ def HelperUtility(action, cell, grid):
             for newX, newY in neighs:
                 dist = util.manhattanDistance((newX, newY), (n.x, n.y))
                 if dist < distDict[(newX, newY)]: distDict[(newX, newY)] = dist
-
-        return (MOVE_CONSTANT, min(distDict, key=distDict.get))
+        if min(distDict.values()) == 0.0: return (0, (0,0))
+        return (MOVE_CONSTANT * 1./min(distDict.values()), min(distDict, key=distDict.get))
 
         
     return utility

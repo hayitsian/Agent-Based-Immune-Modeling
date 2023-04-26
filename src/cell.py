@@ -3,7 +3,6 @@ from scipy.stats import bernoulli
 from copy import deepcopy
 import random as rand
 import util
-from cellAgents import NaiveUtility, HelperUtility
 
 class BaseCell():
 
@@ -35,6 +34,8 @@ class BaseCell():
             self._boost = 0.0
 
     def boost(self, boost:float, count:int):
+        if self.boosted: self.revert() # new boosts override current
+
         if boost > 0. and count > 0 and not self.boosted:
             self.counter = count 
             self._boost = boost
@@ -50,18 +51,22 @@ class BaseCell():
         newCell.y = newY
 
         return newCell
+
+    def updateParams(self, localCells, localArea):
     
+        density = float(len(localCells)) / float(localArea)
+        if density > 0.85: self.boost(0.5, 10)
+
     def __str__(self):
         if self.infected: return "x"
         return "o"
 
 
-class ImmuneCell(BaseCell):
+class NaiveImmuneCell(BaseCell):
 
-    def __init__(self, x, y, util, attack_success, immune_constant=0.75, repro=.1, die=.05, infected=False):
+    def __init__(self, x, y, attack_success, immune_constant=0.75, repro=.1, die=.05, infected=False):
         super().__init__(x, y, repro*immune_constant, die, infected)
         self.immune = True
-        self.util = util #utility of cell. Should be a function that takes in an action, a ImmuneCell, and a Grid
         self.attack_success = attack_success #probability of attacking neighbor cells successfully
         self.immuned_constant = immune_constant
         self.activated = False
@@ -101,14 +106,22 @@ class ImmuneCell(BaseCell):
         self.y = y
         return self
 
+    def updateParams(self, localCells, localArea):
+        density = float(len(localCells)) / float(localArea)
+        immDensity = float(len([cell for cell in localCells if cell.immune])) / float(len(localCells))
+        infDensity = float(len([cell for cell in localCells if cell.infected])) / float(len(localCells))
+        # harsher conditions then base, but worse penalty
+        if immDensity > 0.65 and density > 0.5 and infDensity < 0.25: self.boost(0.3, 20)
+
+
     def __str__(self):
         return "i"
 
 
-class HelperImmuneCell(ImmuneCell):
+class HelperImmuneCell(NaiveImmuneCell):
 
     def __init__(self, x, y, attack_success, helper_boost=1.25, boost_count=5, immune_constant=1.0, repro=.1, die=.05, infected=False):
-        super().__init__(x, y, HelperUtility, attack_success, immune_constant, repro, die, infected)
+        super().__init__(x, y, attack_success, immune_constant, repro, die, infected)
         self.helper_boost = helper_boost
         self.boost_count = boost_count
         self.activated = False
@@ -119,3 +132,21 @@ class HelperImmuneCell(ImmuneCell):
     def __str__(self):
         return "h"
 
+    def updateParams(self, localCells, localArea):
+        density = float(len(localCells)) / float(localArea)
+        hthlyDensity = float(len([cell for cell in localCells if cell.immune])) / float(len(localCells))
+        infDensity = float(len([cell for cell in localCells if cell.infected])) / float(len(localCells))
+        # harsher conditions then base, but worse penalty
+        if infDensity > 0.55 and density > 0.5: self.boost(1.1, 10)
+        elif density > 0.5 and hthlyDensity > 0.55: self.boost(0.9, 10)
+
+
+
+class SmartImmuneCell(NaiveImmuneCell):
+
+    def __init__(self, x, y, attack_success, immune_constant=0.75, repro=.1, die=.05, infected=False):
+        super().__init__(x, y, attack_success, immune_constant=0.75, repro=.1, die=.05, infected=False)
+
+
+    def move(self, neighbors, width, height):
+        

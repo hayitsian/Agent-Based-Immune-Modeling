@@ -9,12 +9,12 @@ from itertools import chain
 
 class GameState():
 
-    def __init__(self, width=100, height=100, localRadius=None, effectorUtility = SmartUtility, helperUtility = HelperUtility):
+    def __init__(self, width=100, height=100, localRadius=None, effectorUtility = NaiveUtility, helperUtility = HelperUtility):
         self.width = width
         self.height = height
         self.cells = []
         self.grid = [[None for i in range(width)] for j in range(height)]
-        if localRadius is None: self.localRadius = self.width / 3
+        if localRadius is None: self.localRadius = self.width / 5
         else: self.localRadius = localRadius
         self.effectorUtility = effectorUtility
         self.helperUtility = helperUtility
@@ -56,7 +56,7 @@ class GameState():
             i = rand.randint(0, len(self.cells)-1)
             cell = self.cells[i]
             if cell != None and not cell.infected and not cell.immune:
-                ic = ImmuneCell(cell.x, cell.y, self.effectorUtility, attack_success, immune_constant, repro=repro_prob, die=die_prob)
+                ic = ImmuneCell(cell.x, cell.y, attack_success, immune_constant, repro=repro_prob, die=die_prob)
                 self.cells[i] = ic
                 self.add(cell.x, cell.y, ic)
                 immune += 1
@@ -97,7 +97,7 @@ class GameState():
             # resMove = self.moveCell(cell)
             # if res: print("Cell moved")
 
-            # cell.updateParams
+            cell.updateParams(self.getLocalCells(cell.x, cell.y), )
             
             resRepr = self.reproduceCell(cell)
             _numReproduce += resRepr
@@ -131,7 +131,9 @@ class GameState():
         numInfected = sum([cell.infected for cell in self.cells])
         numImmune = sum([cell.immune for cell in self.cells])
         numHelper = sum([cell.helper for cell in self.cells])
-        return numCells, numInfected, numImmune, numHelper, _numReproduce, _numMoved, _numInfected, _numDied, _numActivated, _numKilled, _numBoosted, _numSuppressed
+        numHealthy = numCells - numImmune - numInfected
+        numEffector = numImmune - numHelper
+        return [numCells, numHealthy, numInfected, numImmune, numEffector, numHelper, _numReproduce, _numMoved, _numInfected, _numDied, _numActivated, _numKilled, _numBoosted, _numSuppressed]
 
 
     def updateGrid(self):
@@ -226,7 +228,7 @@ class GameState():
     def immuneAttack(self, cell:ImmuneCell):
         neighbors = self.getNeighbors(cell.x, cell.y)
         if bernoulli.rvs(cell.attack_success) == 1:
-            cell.boost(self.helper_boost, self.boost_count) # NOTE
+            cell.boost(self.helper_boost * 2, self.boost_count / 2) # NOTE
             score = 0
             for neighbor in neighbors:
                 self.add(neighbor.x,neighbor.y,None)
@@ -276,8 +278,7 @@ class GameState():
             return 1
         return 0
     
-    def getLocalCells(self, x, y): # NOTE keep in mind this radius
-
+    def getLocalArea(self, x, y):
         lowerX = x-self.localRadius
         if lowerX < 0: lowerX = 0
 
@@ -295,6 +296,10 @@ class GameState():
         higherX = int(higherX)
         higherY = int(higherY)
 
+        return lowerX, lowerY, higherX, higherY
+
+    def getLocalCells(self, x, y): # NOTE keep in mind this radius
+        lowerX, lowerY, higherX, higherY = self.getLocalArea(x, y)
 
         subGrid = self.grid[lowerX:higherX][lowerY:higherY]
         return [cell for cell in list(chain(*subGrid)) if cell is not None]

@@ -17,9 +17,10 @@ import matplotlib.pyplot as plt
 
 
 
-def errorPlot(EPOCHS, FIGURE_TITLE, FIGURE_NAME, _labels, data):
-    for i in range(len(data)):
-        plt.errorbar(list(range(EPOCHS+1)), np.mean(data[i], axis=0), yerr=sem(data[i]), label=_labels[i])
+def errorPlot(FIGURE_TITLE, FIGURE_NAME, _labels, data):
+
+    for i in range(len(_labels)):
+        plt.errorbar(data[0], np.mean(data[i+1], axis=0), yerr=sem(data[i+1]), label=_labels[i])
 
     plt.title(FIGURE_TITLE)
     plt.xlabel("Steps")
@@ -59,30 +60,28 @@ startTime = default_timer()
 
 res = Parallel(n_jobs=-3, backend="threading", verbose=50)(delayed(main.main)() for i in range(NUM_SIMS))
 
-result = np.array(res)
+data, labels, numCount = res
 
-data = []
+dataCounts = data[0:numCount]
+dataActions = data[numCount:]
 
-for i in range(result.shape[1]):
-    data.append(result[:,i])
+labelCounts = labels[:numCount]
+labelActions = labels[numCount:]
 
-dataCounts = data[0:6]
-dataActions = data[6:]
-
-countsLabels = ["Total cell count", "Infected cell count", "Immune cell count", "Healthy cell count", "Helper cell count", "Effector cell count"]
-actionsLabels = ["Activated cell count", "Reproduced cell count", "Moved cell count", "Infected cell count", "Died cell count", "Killed cell count", "Boosted cell count", "Suppressed cell count"]
 
 time = default_timer() - startTime
 print(f"Simulation took: {time}")
 
+
 FIGURE_TITLE = f"Cell counts over {NUM_SIMS} iterations {params['EPOCHS']} steps {params['WIDTH']}x{params['HEIGHT']} grid\nInfectProb: {params['INFECT_PROB']} ReproProb: {params['REPRODUCE_PROB']} DeathProb: {params['DEATH_PROB']} AttackSuccess: {params['ATTACK_SUCCESS']}\nWith smartUtility immune cell movement"
 FIGURE_NAME = FIGURE_TITLE.replace("\n", " ") + ".png"
 
-errorPlot(params["EPOCHS"], FIGURE_TITLE, FIGURE_NAME, countsLabels, dataCounts)
+errorPlot(FIGURE_TITLE, FIGURE_NAME, labelCounts, dataCounts)
+
 
 FIGURE_TITLE = f"Cell actions over {NUM_SIMS} iterations {params['EPOCHS']} steps {params['WIDTH']}x{params['HEIGHT']} grid\nInfectProb: {params['INFECT_PROB']} ReproProb: {params['REPRODUCE_PROB']} DeathProb: {params['DEATH_PROB']} AttackSuccess: {params['ATTACK_SUCCESS']}\nWith smartUtility immune cell movement"
 FIGURE_NAME = FIGURE_TITLE.replace("\n", " ") + ".png"
 
-errorPlot(params["EPOCHS"], FIGURE_TITLE, FIGURE_NAME, actionsLabels, dataActions)
+errorPlot(FIGURE_TITLE, FIGURE_NAME, labelActions, dataActions)
 
 
