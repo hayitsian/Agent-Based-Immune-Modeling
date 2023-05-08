@@ -198,14 +198,20 @@ class GameState():
             oldY = deepcopy(cell.y)
             newx, newy = cell.move(localCells,
                       self.width, self.height)
+            print(self.grid[newx][newy])
+            print(self.grid[oldX][oldY])
             if oldX != newx or oldY != newy:
-                if self.grid[newx][newy] is not None:
+                if self.grid[newx][newy] is not None and self.grid[oldX][oldY] is not None:
                     oldCel = self.grid[newx][newy]
                     oldCel.x = oldX
                     oldCel.y = oldY
                     self.grid[oldX][oldY] = oldCel
                     self.grid[newx][newy] = cell
                     return -2 # swap
+                if self.grid[newx][newy] is None and self.grid[oldX][oldY] is None:
+                    return 0
+                self.grid[newx][newy] = cell
+                self.grid[oldX][oldY] = None
                 return -1 # plain old move
         return 0
 

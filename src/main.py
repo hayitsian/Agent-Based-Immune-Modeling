@@ -37,7 +37,7 @@ def main(INFECT_PROB = 0.035,
     HEIGHT = 50,
     EPOCHS = 2500,
     PLOT = True,
-    VERBOSE = True
+    VERBOSE = False
     ):
 
     INIT_IMMUNE = INIT_EFFECTOR + INIT_HELPER
