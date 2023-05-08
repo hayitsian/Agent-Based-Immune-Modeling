@@ -133,6 +133,7 @@ class GameState():
             _numDied += resDie
             # if res: print("Cell died")
 
+            if self.grid[cell.x][cell.y] is None: self.updateGrid()
 
             numCellsList = len(self.cells)
             numCellsGrid = len(self.getAllCells())
