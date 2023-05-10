@@ -61,22 +61,18 @@ class GameState():
     
 
     
-    def immuneAct(self, cell):
+    def immuneAct(self, cell:NaiveImmuneCell, action:str):
         if cell.immune:
             if cell.helper: cell.suppress = cell.support = False
             if cell.activated: cell.activated = False
 
-            localCells = self.getLocalCells(cell.x, cell.y, cell.window)
-
             lowerX, lowerY, higherX, higherY = self.getLocalArea(cell.x, cell.y, cell.window)
             localArea = (higherX - lowerX) * (higherY - lowerY)
 
-            action, _utilDict = self.utility(cell, localCells, localArea)
- 
             if action == "ATTACK": # attack
                 cell.activated = True
                 if cell.helper: 
-                    cell.activate(localCells, localArea)
+                    cell.activate(self.getLocalCells(cell.x, cell.y, cell.window), localArea)
                     if cell.suppress: return self.immuneSuppression(cell)
                     elif cell.support: return self.immuneSupport(cell)
                 return self.immuneAttack(cell)
@@ -141,9 +137,9 @@ class GameState():
 
     def immuneAttack(self, cell:NaiveImmuneCell):
         neighbors = self.getNeighbors(cell.x, cell.y)
-        _succ = cell.attack_success
+        _succ = deepcopy(cell.attack_success)
         if cell.boosted: _succ = 0.99
-        if bernoulli.rvs(_succ) == 1:
+        if bernoulli.rvs(_succ) == 1: # NOTE: random probability
             cell.boost(2, 2) # NOTE
             score = 0
             for neighbor in neighbors:
@@ -155,16 +151,14 @@ class GameState():
 
     def reproduceCell(self, cell):
         #reproduces cell if random number is less than reproduction probability
-        sample = bernoulli.rvs(cell.repro_prob)
-        if sample == 1:
-            neighs = self.getEmptyNeighbors(cell.x, cell.y)
-            if len(neighs) > 0:
-                newCoords = rand.choice(neighs) # TODO this is not random
-                newCell = cell.reproduce(newCoords[0], newCoords[1])
-                if newCell.boosted: newCell.revert()
-                self.add(newCoords[0], newCoords[1], newCell)
-                self.cells.append(newCell)
-                return 1
+        neighs = self.getEmptyNeighbors(cell.x, cell.y)
+        if len(neighs) > 0:
+            newCoords = rand.choice(neighs) # TODO Random
+            newCell = cell.reproduce(newCoords[0], newCoords[1])
+            if newCell.boosted: newCell.revert()
+            self.add(newCoords[0], newCoords[1], newCell)
+            self.cells.append(newCell)
+            return 1
         return 0
 
     def infectCell(self, cell):
@@ -174,26 +168,20 @@ class GameState():
             neighbors = self.getNeighbors(cell.x, cell.y)
             for neighbor in neighbors:
                 if neighbor.immune: continue
-                sample = bernoulli.rvs(cell.infection_prob)
-                if sample == 1:
-                    
-                    if not neighbor.infected:
-                        if neighbor in self.cells: self.cells.remove(neighbor)
-                        neighbor.infected=True
-                        self.cells.append(neighbor)
-                        self.add(neighbor.x, neighbor.y, neighbor)
-                        numInfected += 1
+                if not neighbor.infected:
+                    if neighbor in self.cells: self.cells.remove(neighbor)
+                    neighbor.infected=True
+                    self.cells.append(neighbor)
+                    self.add(neighbor.x, neighbor.y, neighbor)
+                    numInfected += 1
         return numInfected
     
 
     def die(self, cell):
         #kills cell if random number is less than death probability
-        sample = bernoulli.rvs(cell.die_prob)
-        if sample == 1:
-            self.grid[cell.x][cell.y] = None
-            if cell in self.cells: self.cells.remove(cell) # NOTE: this could be an issue
-            return 1
-        return 0
+        self.grid[cell.x][cell.y] = None
+        if cell in self.cells: self.cells.remove(cell) # NOTE: this could be an issue
+        return 1
     
 
     def getLocalArea(self, x, y, radius):
