@@ -11,7 +11,7 @@ class GameState():
 
     def __init__(self, width=100, height=100,
                  utility = NaiveUtility, autocrineWindow = 2,
-                 paracrineWindow = 5, endocrineWindow = 10):
+                 paracrineWindow = 4, endocrineWindow = 8):
         
         self.width = width
         self.height = height
@@ -26,127 +26,23 @@ class GameState():
         self.endocrineWindow = endocrineWindow
 
 
-    def start(self, infection_prob, repro_prob, die_prob, immune_constant=0.75, attack_success=.75, helper_boost=1.25, boost_count=5, numCells=200, numInfected=20, numImmune=20, numHelper=10):
-        #creates grid and adds cells randomly to grid and randomly infects some of them
-        self.infection_prob = infection_prob
-        self.repro_prob = repro_prob
-        self.die_prob = die_prob
 
-        self.immune_constant = immune_constant
-        self.attack_success = attack_success
-        self.helper_boost = helper_boost
-        self.boost_count = boost_count
+    def load(self, cells: list[BaseCell]):
+        # loads in a gamestate as a list of cells
+        # the cells' x,y position must be within this gamestate's grid width & height
 
-        for i in range(numCells):
-            x = rand.randint(0, self.width-1)
-            y = rand.randint(0, self.height-1)
-            if self.get(x,y) == None:
-                cell = BaseCell(x, y, window=self.autocrineWindow, repro=repro_prob, die=die_prob, infec=self.infection_prob)
-                self.add(x, y, cell)
-                self.cells.append(cell)
-            else:
-                i -= 1
+        for _cell in cells:
+            assert _cell.x >= 0 and _cell.x < self.width, f"Cell x-pos {_cell.x} greater than gameState width {self.width}"
+            assert _cell.y >= 0 and _cell.y < self.height, f"Cell y-pos {_cell.y} greater than gameState height {self.height}"
+            for __cell in self.cells: assert _cell.x != __cell.x or _cell.y != __cell.y, f"Cell at {_cell.x}, {_cell.y} already exists"
+            self.cells.append(_cell)
 
-        numCellsList = len(self.cells)
-        numCellsGrid = len(self.getAllCells())
-        assert numCellsList == numCellsGrid, f"Cells List {numCellsList}, cells grid {numCellsGrid}"
-
-        infected = 0
-        while infected < numInfected:
-            i = rand.randint(0, len(self.cells)-1)
-            cell = self.cells[i]
-            if cell != None and not cell.infected:
-                cell.infected = True
-                infected += 1
-
-        immune = 0
-        while immune < numImmune:
-            i = rand.randint(0, len(self.cells)-1)
-            cell = self.cells[i]
-            if cell != None and not cell.infected and not cell.immune:
-                ic = NaiveImmuneCell(cell.x, cell.y, window=self.paracrineWindow, attack_success=attack_success, immune_constant=immune_constant, repro=repro_prob, die=die_prob)
-                self.cells[i] = ic
-                self.add(cell.x, cell.y, ic)
-                immune += 1
-
-        helper = 0
-        while helper < numHelper:
-            i = rand.randint(0, len(self.cells)-1)
-            cell = self.cells[i]
-            if cell != None and not cell.infected and not cell.immune and not cell.helper:
-                hc = HelperImmuneCell(cell.x, cell.y, window=self.endocrineWindow, helper_boost=helper_boost, boost_count=boost_count, immune_constant=immune_constant, repro=repro_prob, die=die_prob)
-                self.cells[i] = hc
-                self.add(cell.x, cell.y, hc)
-                helper += 1
-
-        numCellsList = len(self.cells)
-        numCellsGrid = len(self.getAllCells())
-        assert numCellsList == numCellsGrid, f"Cells List {numCellsList}, cells grid {numCellsGrid}"
+        
+        self.cells = cells
+        self.updateGrid()
 
         return self
-
-
-
-    def step(self):
-
-        _numActivated = 0
-        _numMoved = 0
-        _numInfected = 0
-        _numReproduce = 0
-        _numBoosted = 0 # helper boosts
-        _numSuppressed = 0 # helper supresses
-        _numKilled = 0 # immune attacks
-        _numDied = 0
-        
-        for cell in self.cells:
-
-            
-            # resMove = self.moveCell(cell)
-            # if res: print("Cell moved")
-            lowerX, lowerY, higherX, higherY = self.getLocalArea(cell.x, cell.y, cell.window)
-            localArea = (higherX - lowerX) * (higherY - lowerY)
-
-            if not cell.boosted: cell.updateParams(self.getLocalCells(cell.x, cell.y, cell.window), localArea)
-            
-            cell.decrementCounter()
-
-
-            resRepr = self.reproduceCell(cell)
-            _numReproduce += resRepr
-            # if res: print("Cell reproduced")
-            
-            resInf = self.infectCell(cell)
-            _numInfected += resInf
-            # if res: print(f"Cells infected: {res}")
-            
-            resImm = self.immuneAct(cell)
-            if resImm>0: 
-                _numActivated += 1
-                if cell.helper: 
-                    if cell.support: _numBoosted += resImm
-                    elif cell.suppress: _numSuppressed += resImm
-                elif cell.immune: _numKilled += resImm
-            elif resImm<0: _numMoved += 1
-            # if res: print("Cell activated")
-
-            resDie = self.die(cell)
-            _numDied += resDie
-            # if res: print("Cell died")
-
-            if self.grid[cell.x][cell.y] is None: self.updateGrid()
-
-            numCellsList = len(self.cells)
-            numCellsGrid = len(self.getAllCells())
-            assert numCellsList == numCellsGrid, f"Cells List {numCellsList}, cells grid {numCellsGrid}, action? {resImm} reproduce? {resRepr}, infected? {resInf}, died? {resDie}"
-            
-        # self.updateGrid() # unnecessary
-        numCells = len(self.cells)
-        numInfected = sum([cell.infected for cell in self.cells])
-        numImmune = sum([cell.immune for cell in self.cells])
-        numHelper = sum([cell.helper for cell in self.cells])
-        numHealthy = numCells - numImmune - numInfected
-        numEffector = numImmune - numHelper
-        return [numCells, numHealthy, numInfected, numImmune, numEffector, numHelper, _numReproduce, _numMoved, _numInfected, _numDied, _numActivated, _numKilled, _numBoosted, _numSuppressed]
+    
 
 
     def updateGrid(self):
@@ -155,7 +51,7 @@ class GameState():
 
 
     def add(self, x, y, cell):
-        if cell in self.getAllCells():
+        if cell in self.getAllCellsGrid():
             return
         self.grid[x][y] = cell
 
@@ -170,36 +66,41 @@ class GameState():
             if cell.helper: cell.suppress = cell.support = False
             if cell.activated: cell.activated = False
 
-            if cell.helper: localRadius = self.paracrineWindow
-            elif cell.immune: localRadius = self.autocrineWindow
-            localCells = self.getLocalCells(cell.x, cell.y, localRadius)
-            lowerX, lowerY, higherX, higherY = self.getLocalArea(cell.x, cell.y, localRadius)
+            localCells = self.getLocalCells(cell.x, cell.y, cell.window)
+
+            lowerX, lowerY, higherX, higherY = self.getLocalArea(cell.x, cell.y, cell.window)
             localArea = (higherX - lowerX) * (higherY - lowerY)
 
-            action = self.utility(cell, localCells, localArea)
-
+            action, _utilDict = self.utility(cell, localCells, localArea)
+ 
             if action == "ATTACK": # attack
                 cell.activated = True
-                if cell.helper: return self.immuneSupport(cell)
+                if cell.helper: 
+                    cell.activate(localCells, localArea)
+                    if cell.suppress: return self.immuneSuppression(cell)
+                    elif cell.support: return self.immuneSupport(cell)
                 return self.immuneAttack(cell)
             
             elif action == "MOVE": # move
                 return self.moveCell(cell)
             
             elif action == "PASS": # pass/suppress
-                if cell.helper: return self.immuneSuppression(cell)
-                return 0
+                cell.die_prob = 0.5
+                res = self.die(cell)
+                if not res: cell.die_prob = 0.01
+                return res
         return 0
     
+
+
     def moveCell(self, cell):
         if cell.immune:
-            localCells = self.getLocalCells(cell.x, cell.y, cell.window)
+            localCells = self.getLocalCells(cell.x, cell.y, self.endocrineWindow) # movement direction gets full endocrine signal
             oldX = deepcopy(cell.x)
             oldY = deepcopy(cell.y)
             newx, newy = cell.move(localCells,
                       self.width, self.height)
-            print(self.grid[newx][newy])
-            print(self.grid[oldX][oldY])
+            
             if oldX != newx or oldY != newy:
                 if self.grid[newx][newy] is not None and self.grid[oldX][oldY] is not None:
                     oldCel = self.grid[newx][newy]
@@ -208,12 +109,14 @@ class GameState():
                     self.grid[oldX][oldY] = oldCel
                     self.grid[newx][newy] = cell
                     return -2 # swap
-                if self.grid[newx][newy] is None and self.grid[oldX][oldY] is None:
+                if self.grid[oldX][oldY] is None:
                     return 0
                 self.grid[newx][newy] = cell
                 self.grid[oldX][oldY] = None
                 return -1 # plain old move
         return 0
+
+
 
     def immuneSupport(self, cell:HelperImmuneCell):
         # boosts immune cell proliferation and reduces infected
@@ -232,14 +135,16 @@ class GameState():
         if len(localCells) == 0: return 0
         for _cell in localCells:
             if not _cell.infected and not _cell.immune: _cell.boost(cell.helper_boost, cell.boost_count)
-            if _cell.immune and not _cell.helper: _cell.boost(1./(2*cell.helper_boost), cell.boost_count)
+            elif _cell.immune: _cell.boost(1./(2*cell.helper_boost), cell.boost_count)
         cell.suppress = True
         return 1
 
     def immuneAttack(self, cell:NaiveImmuneCell):
         neighbors = self.getNeighbors(cell.x, cell.y)
-        if bernoulli.rvs(cell.attack_success) == 1:
-            cell.boost(self.helper_boost * 2, self.boost_count / 2) # NOTE
+        _succ = cell.attack_success
+        if cell.boosted: _succ = 0.99
+        if bernoulli.rvs(_succ) == 1:
+            cell.boost(2, 2) # NOTE
             score = 0
             for neighbor in neighbors:
                 self.add(neighbor.x,neighbor.y,None)
@@ -256,7 +161,7 @@ class GameState():
             if len(neighs) > 0:
                 newCoords = rand.choice(neighs) # TODO this is not random
                 newCell = cell.reproduce(newCoords[0], newCoords[1])
-                if newCell.boosted and newCell.immune: newCell.revert()
+                if newCell.boosted: newCell.revert()
                 self.add(newCoords[0], newCoords[1], newCell)
                 self.cells.append(newCell)
                 return 1
@@ -285,7 +190,7 @@ class GameState():
         #kills cell if random number is less than death probability
         sample = bernoulli.rvs(cell.die_prob)
         if sample == 1:
-            self.add(cell.x, cell.y, None)
+            self.grid[cell.x][cell.y] = None
             if cell in self.cells: self.cells.remove(cell) # NOTE: this could be an issue
             return 1
         return 0
@@ -311,13 +216,17 @@ class GameState():
 
         return lowerX, lowerY, higherX, higherY
 
-    def getLocalCells(self, x, y, radius): # NOTE keep in mind this radius
-        # note: need to remove the given cell from local cells
+
+    def getLocalCells(self, x, y, radius): 
+        # NOTE keep in mind this radius
+        # NOTE: removes the given cell from local cells
         lowerX, lowerY, higherX, higherY = self.getLocalArea(x, y, radius)
 
-        subGrid = self.grid[lowerX:higherX][lowerY:higherY]
-        noNoneCells = [cell for cell in list(chain(*subGrid)) if cell is not None]
-        return [cell for cell in noNoneCells if cell.x != x or cell.y != y]
+
+        subGrid = self.grid[lowerY:higherY+1] # NOTE: +1 for slicing
+        subGrid = [row[lowerX:higherX+1] for row in subGrid]
+        noNoneCells = [cell for cell in list(chain(*subGrid)) if cell is not None and (cell.x != x or cell.y != y)]
+        return noNoneCells
 
 
     def getEmptyNeighbors(self, x, y):
@@ -361,7 +270,10 @@ class GameState():
         return neighbors
     
 
-    def getAllCells(self):
+    def getAllCellsList(self):
+        return self.cells
+
+    def getAllCellsGrid(self):
         #returns list of all Cell objects in grid
         return [cell for cell in list(chain(*self.grid)) if cell is not None]
     

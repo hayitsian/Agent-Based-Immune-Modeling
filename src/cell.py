@@ -23,6 +23,7 @@ class BaseCell():
         self.immune = False
         self.helper = False
         self.boosted = False
+        self.activated = False
     
     def decrementCounter(self):
         if self.counter == 1:
@@ -68,16 +69,20 @@ class BaseCell():
         density = float(len(localCells)) / float(localArea)
 
         if density > 0.85: self.boost(0.5, 10)
+        elif density < 0.15: self.boost(1.5, 10)
 
     def __str__(self):
-        if self.infected: return "x"
+        if self.infected: 
+            if self.boosted: return "x̂"
+            return "x"
+        elif self.boosted: return "ō"
         return "o"
 
 
 class NaiveImmuneCell(BaseCell):
 
     def __init__(self, x, y, window, attack_success, immune_constant=0.75, repro=.1, die=.05):
-        super().__init__(x, y, window, repro=repro*immune_constant, die=die, infec=0.0)
+        super().__init__(x, y, window, repro=repro*immune_constant, die=die*(immune_constant**10), infec=0.0)
         self.immune = True
         self.attack_success = attack_success #probability of attacking neighbor cells successfully
         self.immuned_constant = immune_constant
@@ -119,10 +124,12 @@ class NaiveImmuneCell(BaseCell):
             infDensity = float(len([cell for cell in localCells if cell.infected])) / float(len(localCells))
             hlpDensity = float(len([cell for cell in localCells if cell.immune and cell.helper])) / float(len(localCells))
             # harsher conditions then base, but worse penalty
-            if immDensity > 0.65 and density > 0.5 and infDensity < 0.25: self.boost(0.3, 20)
-            elif infDensity > 0.25 and hlpDensity > 0.2: self.boost(1.3, 5)
+            if immDensity > 0.65 and density > 0.5 and infDensity < 0.05: self.boost(0.3, 20)
+            elif infDensity > 0.15 and hlpDensity > 0.1: self.boost(1.3, 5)
 
     def __str__(self):
+        if self.activated: return "ɨ"
+        if self.boosted: return "į"
         return "i"
 
 
@@ -130,7 +137,7 @@ class NaiveImmuneCell(BaseCell):
 class SmartImmuneCell(NaiveImmuneCell):
 
     def __init__(self, x, y, window, attack_success, immune_constant=0.75, repro=.1, die=.05):
-        super().__init__(x, y, window, attack_success, immune_constant=immune_constant, repro=repro, die=die, infected=False)
+        super().__init__(x, y, window, attack_success, immune_constant=immune_constant, repro=repro, die=die)
 
 
     def move(self, neighbors, width, height):
@@ -138,41 +145,50 @@ class SmartImmuneCell(NaiveImmuneCell):
 
         closeInfected = [cell for cell in neighbors if cell.infected]
         if len(closeInfected) == 0: return super().move(neighbors, width, height) # random walk if no infected
+        
+        neighs = util.getNeighboringPositions(self.x, self.y, width, height)
         for n in closeInfected:
-            neighs = util.getNeighboringPositions(self.x, self.y, width, height)
-
             for newX, newY in neighs: distDict[(newX, newY)] = np.inf
             for newX, newY in neighs:
                 dist = util.manhattanDistance((newX, newY), (n.x, n.y))
                 if dist < distDict[(newX, newY)]: distDict[(newX, newY)] = dist
 
         if min(distDict.values()) == 0.0: return self.x, self.y
-        return min(distDict, key=distDict.get)
+        newX, newY = min(distDict, key=distDict.get)
+        self.x = newX
+        self.y = newY
+        return newX, newY
 
 
 
-class HelperImmuneCell(NaiveImmuneCell):
+class HelperImmuneCell(SmartImmuneCell):
 
     def __init__(self, x, y, window, helper_boost=1.25, boost_count=5, immune_constant=1.0, repro=.1, die=.05):
         super().__init__(x, y, window, attack_success=0.0, immune_constant=immune_constant, repro=repro, die=die)
         self.helper_boost = helper_boost
         self.boost_count = boost_count
-        self.activated = False
         self.helper = True
         self.suppress = False
         self.support = False
 
     def __str__(self):
+        if self.suppress: return "ḩ"
+        elif self.support: return "ĥ"
         return "h"
 
     def updateParams(self, localCells, localArea):
         density = float(len(localCells)) / float(localArea)
+
         if len(localCells) > 0:
-            hthlyDensity = float(len([cell for cell in localCells if cell.immune])) / float(len(localCells))
+            hthlyDensity = float(len([cell for cell in localCells if not cell.immune and not cell.infected])) / float(len(localCells))
+            immDensity = float(len([cell for cell in localCells if cell.immune])) / float(len(localCells))
+            accDensity = float(len([cell for cell in localCells if cell.immune])) / float(len(localCells))
             infDensity = float(len([cell for cell in localCells if cell.infected])) / float(len(localCells))
             # harsher conditions then base, but worse penalty
             if infDensity > 0.55 and density > 0.5: self.boost(1.1, 10)
+            elif immDensity > 0.45 and accDensity < 0.05: self.boost(0.1, 10)
             elif density > 0.5 and hthlyDensity > 0.55: self.boost(0.9, 10)
+
 
     def move(self, neighbors, width, height):
         distDict = {}
@@ -188,4 +204,19 @@ class HelperImmuneCell(NaiveImmuneCell):
                 if dist < distDict[(newX, newY)]: distDict[(newX, newY)] = dist
 
         if min(distDict.values()) == 0.0: return self.x, self.y
-        return min(distDict, key=distDict.get)
+        newX, newY = min(distDict, key=distDict.get)
+        self.x = newX
+        self.y = newY
+        return newX, newY
+
+    def activate(self, neighbors, localArea):
+        if self.support: self.support = False
+        if self.suppress: self.suppress = False
+
+        util = 0.0
+        for n in neighbors:
+            if n.infected: util += 1.9
+            elif not n.immune: util -= 1.1
+
+        if util > 0.: self.support = True
+        else: self.suppress = True

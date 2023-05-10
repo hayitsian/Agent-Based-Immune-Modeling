@@ -47,6 +47,10 @@ def BFS(cell, list, width, height):
             explored.add(pos)
 
 
+def isNeighbor(x1, y1, x2, y2):
+    return (x1==x2 and abs(y1-y2)==1) or (y1==y2 and abs(x1-x2)==1)
+
+
 def getNeighboringPositions(x, y, width, height):
     neighbors = []
     if y+1 < height:
