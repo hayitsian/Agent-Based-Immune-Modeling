@@ -71,7 +71,6 @@ def SmartUtility(cell, localCells, localArea):
     numInf = len([cell for cell in localCells if cell.infected])
     numHealthy = numCells - numImmune - numInf
 
-
     # ATTACK
     if cell.helper and numCells > 0:
         if numCells>0: utilDict["ATTACK"] += (2.5* float(numInf) / float(numCells)) * density
@@ -97,6 +96,5 @@ def SmartUtility(cell, localCells, localArea):
     
     else:
         utilDict["PASS"] += -np.inf
-
     
     return max(utilDict, key=utilDict.get), utilDict # return action with maximum utility

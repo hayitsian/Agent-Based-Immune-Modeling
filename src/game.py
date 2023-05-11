@@ -119,14 +119,14 @@ class Game():
                 resAction = gameState.immuneAct(cells[i], actionList[immIdx])
                 immIdx += 1
 
-            if resAction>0: 
+            if resAction>0:
                 _numActivated += 1
-                if cell.helper: 
+                if cell.helper:
                     if cell.support: _numBoosted += resAction
                     elif cell.suppress: _numSuppressed += resAction
                 elif cell.immune: _numKilled += resAction
             elif resAction<0: _numMoved += 1
-            
+
             resRepr = 0
             if reprList[i]: resRepr = gameState.reproduceCell(cell)
             _numReproduce += resRepr
@@ -142,7 +142,7 @@ class Game():
             numCellsList = len(gameState.getAllCellsList())
             numCellsGrid = len(gameState.getAllCellsGrid())
             assert numCellsList == numCellsGrid, f"Cells List {numCellsList}, cells grid {numCellsGrid}, action? {resAction} reproduce? {resRepr}, infected? {resInf}, died? {resDie}"
-            
+
         numCells = len(gameState.getAllCellsList())
         numInfected = sum([cell.infected for cell in gameState.getAllCellsList()])
         numImmune = sum([cell.immune for cell in gameState.getAllCellsList()])
