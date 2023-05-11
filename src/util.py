@@ -47,6 +47,23 @@ def BFS(cell, list, width, height):
             explored.add(pos)
 
 
+def isNeighbor(x1, y1, x2, y2):
+    return (x1==x2 and abs(y1-y2)==1) or (y1==y2 and abs(x1-x2)==1)
+
+
+def getNeighboringPositions(x, y, width, height):
+    neighbors = []
+    if y+1 < height:
+        neighbors.append((x, y+1))
+    if y-1 >= 0:
+        neighbors.append((x, y-1))
+    if x+1 < width:
+        neighbors.append((x-1, y))
+    if x-1 >= 0:
+        neighbors.append((x+1, y))
+    return neighbors
+
+
 def nearestPoint(pos):
     """
     Finds the nearest grid point to a position (discretizes).
