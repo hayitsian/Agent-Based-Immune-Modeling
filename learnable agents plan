@@ -1,0 +1,23 @@
+plan for learnable immune agents (code):
+
+- revamp the gamestate code to allow pluggable immune cell agents to directly compare
+	- store all needed environemental information in the grid-cells
+	- standardize the immune agent class
+	- move all calculation functions to the immune agents
+	- define some global utility
+	- add functionality to measure train time and compute required, as well as error over time
+
+- heuristic utility agent
+	- develop math for each agent's local utility decisionmaking
+	- grid search for parameters for utility function to meet desired functionality
+
+- learnable agent
+	- develop inputs and outputs of math function to do decisionmaking
+	- develop reward function to learn from
+	- implement and train to meet desired functionality
+
+- ODE agent
+	- develop simplistic ODE model for each immune cell
+	- figure out how to implement differentials into the grid
+	- implement ODEs
+
