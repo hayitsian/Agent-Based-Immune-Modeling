@@ -1,3 +1,5 @@
+
+
 plan for learnable immune agents (code):
 
 - revamp the gamestate code to allow pluggable immune cell agents to directly compare
@@ -11,13 +13,33 @@ plan for learnable immune agents (code):
 	- develop math for each agent's local utility decisionmaking
 	- grid search for parameters for utility function to meet desired functionality
 
+- ODE agent (positive control)
+	- develop simplistic ODE model for each immune cell
+	- figure out how to implement differentials into the grid
+	- implement ODEs
+		- ODE model for IFNb producing epithelial cells in a grid: 
+			- https://academic.oup.com/bioinformatics/article/37/10/1428/5983321
+		- simple comparison of ODE and agent-model of tumor-immune interactions: 
+			- https://arxiv.org/abs/1307.1390
+
 - learnable agent
 	- develop inputs and outputs of math function to do decisionmaking
 	- develop reward function to learn from
 	- implement and train to meet desired functionality
+		- use the data generated from the ODE and Heuristic models to train these agents
 
-- ODE agent
-	- develop simplistic ODE model for each immune cell
-	- figure out how to implement differentials into the grid
-	- implement ODEs
+
+		
+conclusion / future directions:
+- applications for many complex adaptive problems, particularly temporal
+	- NYC Tunnel problem:
+		- https://www.sciencedirect.com/science/article/pii/S0895717708001131
+	- 
+	
+	
+other important sources:
+- review of ML in Agent-based modeling for biomedical systems:
+	- https://arxiv.org/pdf/2206.01092.pdf
+- using neural networks to predict future behavior of agent-based models:
+	- https://www.frontiersin.org/articles/10.3389/fphys.2021.716434/full
 
