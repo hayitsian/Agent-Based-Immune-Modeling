@@ -5,8 +5,6 @@ import random
 import inspect
 import math
 import numpy as np
-# from gamestate import GameState
-# from cell import BaseCell
 from collections import deque
 
 def raiseNotDefined():
@@ -25,6 +23,7 @@ def flipCoin(p):
 
 
 def BFS(cell, list, width, height):
+    # TODO update to rely on not cells or move to another file that can import BaseCell
     queue = deque()
     queue.append([(cell.x, cell.y)])
 
@@ -63,6 +62,21 @@ def getNeighboringPositions(x, y, width, height):
         neighbors.append((x+1, y))
     return neighbors
 
+
+def removeIndexesFromList(testListToModify, idxToRemoveList):
+    res = []
+    for idx, ele in enumerate(testListToModify): 
+        # checking if element not present in index list
+        if idx not in idxToRemoveList:
+            res.append(ele)
+    return res
+
+def addItemAtIndexesToList(listToModify: list[any], idxToAddList: list[int], itemToAdd):
+    idxToAddList.sort()
+    for _idx in idxToAddList:
+        assert _idx <= len(listToModify) # is this necessary?
+        listToModify.insert(_idx, itemToAdd)
+    return listToModify
 
 def nearestPoint(pos):
     """

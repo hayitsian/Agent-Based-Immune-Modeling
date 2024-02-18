@@ -5,6 +5,15 @@ import random as rand
 import util
 import numpy as np
 
+
+
+###
+### TODO for this entire file
+### calculations should happen in the GameState or Grid files
+### cells should really only hold information necessary to perform those calculations, nothing else
+###
+
+
 class BaseCell():
 
     def __init__(self, x, y, window, repro=.1, die=.05, infec=0.05, infected=False, helped=False):
@@ -25,6 +34,10 @@ class BaseCell():
         self.boosted = False
         self.activated = False
     
+    def infect(self):
+        if not self.infected:
+            self.infected = True
+
     def decrementCounter(self):
         if self.counter == 1:
             self.revert()
@@ -52,13 +65,9 @@ class BaseCell():
             self.infection_prob /= boost
             if self.repro_prob > 1.0: self.repro_prob=1.0
 
-    def reproduce(self, newX, newY):
-        #reproduces cell if random number is less than reproduction probability
-
+    def reproduce(self):
+        # returns a copy of this cell for reproduction
         newCell = deepcopy(self)
-        newCell.x = newX
-        newCell.y = newY
-
         return newCell
 
     def move(self, neighbors, width, height):
@@ -177,6 +186,7 @@ class HelperImmuneCell(SmartImmuneCell):
         return "h"
 
     def updateParams(self, localCells, localArea):
+        # TODO: this calculation should be in an agent class
         density = float(len(localCells)) / float(localArea)
 
         if len(localCells) > 0:
@@ -214,6 +224,7 @@ class HelperImmuneCell(SmartImmuneCell):
         if self.suppress: self.suppress = False
 
         util = 0.0
+        # TODO: what the hell is this? this should be in an agent class
         for n in neighbors:
             if n.infected: util += 1.9
             elif not n.immune: util -= 1.1

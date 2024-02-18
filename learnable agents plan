@@ -1,15 +1,21 @@
-
-
 plan for learnable immune agents (code):
 
 - revamp the gamestate code to allow pluggable immune cell agents to directly compare
 	- store all needed environemental information in the grid-cells
+		- CCL2: chemokine secreted by infected/cancerous cells for mobility
+		- TNFa: pro-inflammatory cytokine secreted by helper/effector cells for activation
+		- IL-10: anti-inflammatory cytokine " " " " for inhibition
+		- O2: a molecule necessary for reproduction that exists as a function of local cell density
+		- each is present as a continuous concentration variable which decays over time logarithmically
 	- standardize the immune agent class
-	- move all calculation functions to the immune agents
+		- implement an abstract class
+		- extend to implement ODE/heuristic/learnable agents
+	- move all decision making functions to the immune agents
 	- define some global utility
-	- add functionality to measure train time and compute required, as well as error over time
+		- e.g., total healthy cell damage (# of healthy cells infected/killed)
+	- add functionality to measure train time and compute required
 
-- heuristic utility agent
+- heuristic utility agent (optional tbh)
 	- develop math for each agent's local utility decisionmaking
 	- grid search for parameters for utility function to meet desired functionality
 
@@ -17,26 +23,28 @@ plan for learnable immune agents (code):
 	- develop simplistic ODE model for each immune cell
 	- figure out how to implement differentials into the grid
 	- implement ODEs
-		- ODE model for IFNb producing epithelial cells in a grid: 
+		- ODE agent-based model for IFNb producing epithelial cells in a grid: 
 			- https://academic.oup.com/bioinformatics/article/37/10/1428/5983321
+			- https://github.com/ImmuSystems-Lab/AgentBasedModel-cGASPathway/blob/master/ProblemGenerator.jl
 		- simple comparison of ODE and agent-model of tumor-immune interactions: 
 			- https://arxiv.org/abs/1307.1390
 
 - learnable agent
 	- develop inputs and outputs of math function to do decisionmaking
-	- develop reward function to learn from
+		- likely very similar to the ODE agent, just without the known equations to relate them
+	- define reward function to learn from
+		- the global utility function, probably
 	- implement and train to meet desired functionality
-		- use the data generated from the ODE and Heuristic models to train these agents
+		- use the data generated from the ODE models to train these agents
 
+--
 
-		
 conclusion / future directions:
 - applications for many complex adaptive problems, particularly temporal
-	- NYC Tunnel problem:
+	- NYC Tunnel problem (does this actually apply?):
 		- https://www.sciencedirect.com/science/article/pii/S0895717708001131
-	- 
-	
-	
+
+
 other important sources:
 - review of ML in Agent-based modeling for biomedical systems:
 	- https://arxiv.org/pdf/2206.01092.pdf

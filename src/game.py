@@ -1,10 +1,11 @@
 
 
 from gamestate import GameState
-from cellAgents import NaiveUtility
+from agents import NaiveUtility
 from cell import BaseCell, SmartImmuneCell, HelperImmuneCell
 import random
 from scipy.stats import bernoulli
+import util
 
 class Game():
 
@@ -23,7 +24,9 @@ class Game():
 
         numHealthy = numCells - numInfected - numEffector - numHelper
 
-        for i in range(numHealthy):
+        i = 0
+
+        while i < numHealthy:
             x = random.randint(0, width-1)
             y = random.randint(0, height-1)
 
@@ -31,9 +34,10 @@ class Game():
                 cell = BaseCell(x, y, window=endocrineWindow, repro=repro_prob, die=die_prob, infec=infection_prob)
                 cellList.append(cell)
                 posList.append((x, y))
-            else: i -= 1
+                i += 1
 
-        for i in range(numInfected):
+        i = 0
+        while i < numInfected:
             x = random.randint(0, width-1)
             y = random.randint(0, height-1)
 
@@ -41,9 +45,10 @@ class Game():
                 cell = BaseCell(x, y, window=endocrineWindow, repro=repro_prob, die=die_prob, infec=infection_prob, infected=True)
                 cellList.append(cell)
                 posList.append((x, y))
-            else: i -= 1
+                i += 1
 
-        for i in range(numEffector):
+        i = 0
+        while i < numEffector:
             x = random.randint(0, width-1)
             y = random.randint(0, height-1)
 
@@ -51,9 +56,10 @@ class Game():
                 cell = SmartImmuneCell(x, y, window=endocrineWindow, attack_success=attack_success, immune_constant=immune_constant, repro=repro_prob, die=die_prob)
                 cellList.append(cell)
                 posList.append((x, y))
-            else: i -= 1
+                i += 1
 
-        for i in range(numHelper):
+        i = 0
+        while i < numHelper:
             x = random.randint(0, width-1)
             y = random.randint(0, height-1)
 
@@ -61,88 +67,77 @@ class Game():
                 cell = HelperImmuneCell(x, y, window=paracrineWindow, helper_boost=helper_boost, boost_count=boost_count, immune_constant=immune_constant, repro=repro_prob, die=die_prob)
                 cellList.append(cell)
                 posList.append((x, y))
-            else: i -= 1
+                i += 1
 
-        # assert len(cellList) == numCells, f"Number of cells created: {len(cellList)} number of cells desired: {numCells}"
-        # TODO fix this bug
+        assert len(cellList) == numCells, f"Number of cells created: {len(cellList)} number of cells desired: {numCells}"
+
+        """
         if len(cellList) != numCells: return Game.simpleRandomInitialization(width=width, height=height, 
                                                 infection_prob=infection_prob, repro_prob=repro_prob, die_prob=die_prob,
                                                 immune_constant=immune_constant, attack_success=attack_success,
                                                 helper_boost=helper_boost, boost_count=boost_count,
                                                 numCells=numCells, numInfected=numInfected, numEffector=numEffector, numHelper=numHelper,
                                                 autocrineWindow=autocrineWindow, paracrineWindow=paracrineWindow, endocrineWindow=endocrineWindow)
+        """
+        
         return cellList
 
 
 
     def simpleStepping(gameState: GameState):
-        cells = gameState.getAllCellsList()
 
-        _numActivated = 0
-        _numMoved = 0
-        _numInfected = 0
-        _numReproduce = 0
-        _numBoosted = 0 # helper boosts
-        _numSuppressed = 0 # helper supresses
+        # NOTE: perform action calculations (in gameState)
+        gameState.shuffleCells()
+        gameState.updateCellParams()
+        actionList = gameState.calculateImmuneActivations()
+        reprList = gameState.calculateReproductions()
+        infList = gameState.calculateInfections()
+        dieList = gameState.calculateDeaths()
+
+        # calculate action data
+        _numActivated = actionList.count("ATTACK")
+        _numMoved = actionList.count("MOVE")
+        _numInfected = infList.count(1)
+        _numReproduce = reprList.count(1)
         _numKilled = 0 # immune attacks
         _numDied = 0
-
-        random.shuffle(cells)
-
-        localArea = []
-        localCells = []
         
-        for cell in cells:
 
-            lowerX, lowerY, higherX, higherY = gameState.getLocalArea(cell.x, cell.y, cell.window)
-            _localArea = (higherX - lowerX) * (higherY - lowerY)
-            _localCells = gameState.getLocalCells(cell.x, cell.y, cell.window)
+        # NOTE: priority
+        # immune activation > apoptosis > reproduction > infection > movement
+        
+        # NOTE: perform the actions and get data
 
-            localArea.append(_localArea)
-            localCells.append(_localCells)
+        # TODO: not a fan of all this list updating happening here; move everything to GameState
 
-            if not cell.boosted: cell.updateParams(_localCells, _localArea)
-            
-            cell.decrementCounter()
+        # immune activation (no moving)
+        _deadCells = gameState.performImmuneActivations(actionList)
+        reprList = util.removeIndexesFromList(reprList, _deadCells)
+        infList = util.removeIndexesFromList(infList, _deadCells)
+        dieList = util.removeIndexesFromList(dieList, _deadCells)
+        _numKilled = len(_deadCells)
 
-        actionList = [NaiveUtility(cells[i], localCells[i], localArea[i])[0] for i in range(len(cells)) if cells[i].immune] # only for immune cells
-        reprList = bernoulli.rvs([cell.repro_prob for cell in cells])
-        infList = bernoulli.rvs([cell.infection_prob for cell in cells])
-        dieList = bernoulli.rvs([cell.die_prob for cell in cells])
+        # apoptosis
+        _deadCells = gameState.performApoptosisDeaths(dieList)
+        reprList = util.removeIndexesFromList(reprList, _deadCells)
+        infList = util.removeIndexesFromList(infList, _deadCells)
+        actionList = util.removeIndexesFromList(actionList, _deadCells)
+        _numDied += len(_deadCells)
 
-        immIdx = 0
-        # TODO: fix this
-        for i in range(len(cells)):
+        # reproduction
+        _newCells = gameState.performReproductions(reprList)
+        dieList = util.addItemAtIndexesToList(dieList, _newCells, 0)
+        infList = util.addItemAtIndexesToList(infList, _newCells, 0)
+        actionList = util.addItemAtIndexesToList(actionList, _newCells, "PASS")
+        
+        # infection
+        _numInfected = gameState.performInfections(infList)
 
-            resAction = 0
-            if cells[i].immune: 
-                resAction = gameState.immuneAct(cells[i], actionList[immIdx])
-                immIdx += 1
+        # movement
+        _numMoved = gameState.performMovement(actionList)
 
-            if resAction>0:
-                _numActivated += 1
-                if cell.helper:
-                    if cell.support: _numBoosted += resAction
-                    elif cell.suppress: _numSuppressed += resAction
-                elif cell.immune: _numKilled += resAction
-            elif resAction<0: _numMoved += 1
 
-            resRepr = 0
-            if reprList[i]: resRepr = gameState.reproduceCell(cell)
-            _numReproduce += resRepr
-
-            resInf = 0
-            if infList[i]: resInf = gameState.infectCell(cell)
-            _numInfected += resInf
-
-            resDie = 0
-            if dieList[i]: resDie = gameState.die(cell)
-            _numDied += resDie
-
-            numCellsList = len(gameState.getAllCellsList())
-            numCellsGrid = len(gameState.getAllCellsGrid())
-            assert numCellsList == numCellsGrid, f"Cells List {numCellsList}, cells grid {numCellsGrid}, action? {resAction} reproduce? {resRepr}, infected? {resInf}, died? {resDie}"
-
+        # calculate more data to ouput
         numCells = len(gameState.getAllCellsList())
         numInfected = sum([cell.infected for cell in gameState.getAllCellsList()])
         numImmune = sum([cell.immune for cell in gameState.getAllCellsList()])
@@ -150,7 +145,8 @@ class Game():
         numHealthy = numCells - numImmune - numInfected
         numEffector = numImmune - numHelper
 
-        return gameState, [numCells, numHealthy, numInfected, numImmune, numEffector, numHelper, _numReproduce, _numMoved, _numInfected, _numDied, _numActivated, _numKilled, _numBoosted, _numSuppressed]
+
+        return gameState, [numCells, numHealthy, numInfected, numImmune, numEffector, numHelper, _numReproduce, _numMoved, _numInfected, _numDied, _numActivated, _numKilled]
 
 
 

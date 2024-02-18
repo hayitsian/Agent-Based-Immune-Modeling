@@ -1,7 +1,7 @@
 
 from scipy.stats import bernoulli
 from cell import BaseCell, NaiveImmuneCell, SmartImmuneCell, HelperImmuneCell
-from cellAgents import NaiveUtility, SmartUtility
+from agents import NaiveUtility, SmartUtility
 import numpy as np
 import random as rand
 from copy import deepcopy
@@ -60,36 +60,167 @@ class GameState():
         return self.grid[x][y]
     
 
-    
-    def immuneAct(self, cell:NaiveImmuneCell, action:str):
-        if cell.immune:
-            if cell.helper: cell.suppress = cell.support = False
-            if cell.activated: cell.activated = False
-
+    def updateCellParams(self):
+        # NOTE: updates the probabilities within cells before performing calculations
+        for cell in self.cells:
             lowerX, lowerY, higherX, higherY = self.getLocalArea(cell.x, cell.y, cell.window)
-            localArea = (higherX - lowerX) * (higherY - lowerY)
+            _localArea = (higherX - lowerX) * (higherY - lowerY)
+            _localCells = self.getLocalCells(cell.x, cell.y, cell.window)
+            if not cell.boosted: cell.updateParams(_localCells, _localArea)
+            cell.decrementCounter()
 
-            if action == "ATTACK": # attack
-                cell.activated = True
-                if cell.helper: 
-                    cell.activate(self.getLocalCells(cell.x, cell.y, cell.window), localArea)
-                    if cell.suppress: return self.immuneSuppression(cell)
-                    elif cell.support: return self.immuneSupport(cell)
-                return self.immuneAttack(cell)
-            
-            elif action == "MOVE": # move
-                return self.moveCell(cell)
-            
-            elif action == "PASS": # pass/suppress
-                cell.die_prob = 0.5
-                res = self.die(cell)
-                if not res: cell.die_prob = 0.01
-                return res
+
+    def calculateImmuneActivations(self):
+        immActs = []
+
+        for cell in self.cells:
+            if cell.immune:
+                lowerX, lowerY, higherX, higherY = self.getLocalArea(cell.x, cell.y, cell.window)
+                _localArea = (higherX - lowerX) * (higherY - lowerY)
+                _localCells = self.getLocalCells(cell.x, cell.y, cell.window)
+                immActs.append(self.utility(cell, _localCells, _localArea)[0])
+
+            else: immActs.append("PASS")
+
+        return immActs
+
+
+    def calculateReproductions(self):
+        return bernoulli.rvs([cell.repro_prob for cell in self.cells]).tolist()
+
+
+    def calculateInfections(self):
+        return bernoulli.rvs([cell.infection_prob for cell in self.cells]).tolist()
+
+
+    def calculateDeaths(self):
+        return bernoulli.rvs([cell.die_prob for cell in self.cells]).tolist()
+
+
+    def performImmuneActivations(self, listOfActions: list[str]):
+        # for each cell
+            # if immune
+                # do the immune activation
+            # if cell killed
+                # remove from list of cells and cell grid
+                # pop its index and return it
+
+        deads = []
+        
+        for _idx, _cell in enumerate(self.cells): # the self.cells should be updated by immuneAct
+            assert len(self.cells) == len(listOfActions), f"Number of cells: {len(self.cells)}, Number of immune actions: {len(listOfActions)}"
+            if _cell.immune:
+                _action = listOfActions[_idx]
+                if _action == "ATTACK":
+                    # perform the action
+                    _res = self.immuneAct(_cell, _action) # returns list of indexes removed (or an empty list, or a list of [-1] if unsuccessful)
+                    if len(_res) > 0:
+                        for __idx in _res:
+                            if __idx > -1:
+                                deads.append(__idx)
+                                del listOfActions[__idx]
+        return deads
+
+
+    def performApoptosisDeaths(self, listOfDeaths: list[int]):
+        # for each cell
+            # if dead
+                # pop its index and return it
+
+        deads = []
+
+        for _idx, _cell in enumerate(self.cells): # the self.cells should be updated by die
+            assert len(self.cells) == len(listOfDeaths), f"Number of cells: {len(self.cells)}, Number of death actions: {len(listOfDeaths)}"
+            _death = listOfDeaths[_idx]
+            if _death == 1:
+                # perform the action
+                _res = self.die(_cell)
+                if _res > -1:
+                    deads.append(_res)
+                    del listOfDeaths[_res]
+
+        return deads
+
+
+    def performReproductions(self, listOfRepr: list[int]):
+        # for each cell
+            # if reproduction
+                # pop its index and return it
+
+        newCells = []
+
+        for _idx, _cell in enumerate(self.cells): # the self.cells should be updated by reproduce
+            assert len(self.cells) == len(listOfRepr), f"Number of cells: {len(self.cells)}, Number of reproduce actions: {len(listOfRepr)}"
+            _repr = listOfRepr[_idx]
+            if _repr == 1:
+                # perform the action
+                _res = self.reproduceCell(_cell)
+                if _res > -1:
+                    newCells.append(_res)
+                    listOfRepr.insert(_res, 0)
+        return newCells
+
+
+    def performInfections(self, listOfInf: list[int]):
+        # for each cell
+            # if infected
+                # update its neighbors
+        _res = 0
+        for _idx, _cell in enumerate(self.cells): # the self.cells should be updated by infect
+            _repr = listOfInf[_idx]
+            if _repr == 1:
+                # perform the action
+                _res += self.infectCell(_cell)
+        return _res
+
+
+    def performMovement(self, listOfActions: list[str]):
+        # for each cell
+            # if immune
+                # do the immune activation
+
+        moves = 0
+        
+        for _idx, _cell in enumerate(self.cells): # the self.cells should be updated by immuneAct
+            assert len(self.cells) == len(listOfActions), f"Number of cells: {len(self.cells)}, Number of movements: {len(listOfActions)}"
+            if _cell.immune:
+                _action = listOfActions[_idx]
+                if _action == "MOVE":
+                    # perform the action
+                    _res = self.immuneAct(_cell, _action)
+                    if _res != 0:
+                        moves += 1
+        return moves
+
+
+
+    def immuneAct(self, cell:NaiveImmuneCell, action:str):
+        assert cell.immune, "Trying to perform ImmuneAct on a non-immune cell"
+        if cell.helper: cell.suppress = cell.support = False
+        if cell.activated: cell.activated = False
+
+        lowerX, lowerY, higherX, higherY = self.getLocalArea(cell.x, cell.y, cell.window)
+        localArea = (higherX - lowerX) * (higherY - lowerY)
+
+        if action == "ATTACK": # attack
+            cell.activated = True
+            if cell.helper: 
+                cell.activate(self.getLocalCells(cell.x, cell.y, cell.window), localArea) # TODO i do not like this being calculated in a cell; it should be in an agent
+                if cell.suppress: return self.immuneSuppression(cell)
+                elif cell.support: return self.immuneSupport(cell)
+            return self.immuneAttack(cell)
+        
+        elif action == "MOVE": # move
+            return self.moveCell(cell)
+        
+        elif action == "PASS": # pass
+            return 0
         return 0
     
 
 
     def moveCell(self, cell):
+        # TODO: move all this movement calculation to the Grid
         if cell.immune:
             localCells = self.getLocalCells(cell.x, cell.y, self.endocrineWindow) # movement direction gets full endocrine signal
             oldX = deepcopy(cell.x)
@@ -115,25 +246,26 @@ class GameState():
 
 
     def immuneSupport(self, cell:HelperImmuneCell):
-        # boosts immune cell proliferation and reduces infected
-        # cell's infection probability
+        # boosts immune cell proliferation and reduces infected cell's infection probability
         localCells = self.getLocalCells(cell.x, cell.y, cell.window)
-        if len(localCells) == 0: return 0
+        if len(localCells) == 0: return -1
         for _cell in localCells:
             if _cell.infected: _cell.boost(1./cell.helper_boost, cell.boost_count)
             elif _cell.immune: _cell.boost(cell.helper_boost, cell.boost_count)
         cell.support = True
-        return 1
+        return [-1]
+
 
     def immuneSuppression(self, cell:HelperImmuneCell):
         # boosts healthy cell proliferation
         localCells = self.getLocalCells(cell.x, cell.y, cell.window)
-        if len(localCells) == 0: return 0
+        if len(localCells) == 0: return -1
         for _cell in localCells:
             if not _cell.infected and not _cell.immune: _cell.boost(cell.helper_boost, cell.boost_count)
             elif _cell.immune: _cell.boost(1./(2*cell.helper_boost), cell.boost_count)
         cell.suppress = True
-        return 1
+        return [-1]
+
 
     def immuneAttack(self, cell:NaiveImmuneCell):
         neighbors = self.getNeighbors(cell.x, cell.y)
@@ -141,25 +273,30 @@ class GameState():
         if cell.boosted: _succ = 0.99
         if bernoulli.rvs(_succ) == 1: # NOTE: random probability
             cell.boost(2, 2) # NOTE
-            score = 0
+            score = []
             for neighbor in neighbors:
                 self.add(neighbor.x,neighbor.y,None)
-                self.cells.remove(neighbor) # NOTE: this could be an issue
-                score += 1
+                neighborIdx = self.cells.index(neighbor)
+                self.cells.remove(neighbor) # TODO: this could be an issue
+                score.append(neighborIdx)
             return score
-        return 0
+        return [-1]
+
 
     def reproduceCell(self, cell):
         #reproduces cell if random number is less than reproduction probability
         neighs = self.getEmptyNeighbors(cell.x, cell.y)
         if len(neighs) > 0:
-            newCoords = rand.choice(neighs) # TODO Random
-            newCell = cell.reproduce(newCoords[0], newCoords[1])
+            newCoords = rand.choice(neighs) # NOTE Random
+            newCell = cell.reproduce() # gets a deepcopy of this cell
+            newCell.x = newCoords[0]
+            newCell.y = newCoords[1]
             if newCell.boosted: newCell.revert()
             self.add(newCoords[0], newCoords[1], newCell)
             self.cells.append(newCell)
-            return 1
-        return 0
+            return self.cells.index(newCell)
+        return -1
+
 
     def infectCell(self, cell):
         #infects neighbor cells if infected with probability of infection
@@ -169,19 +306,20 @@ class GameState():
             for neighbor in neighbors:
                 if neighbor.immune: continue
                 if not neighbor.infected:
-                    if neighbor in self.cells: self.cells.remove(neighbor)
-                    neighbor.infected=True
-                    self.cells.append(neighbor)
-                    self.add(neighbor.x, neighbor.y, neighbor)
+                    assert neighbor in self.cells
+                    neighbor.infect()
                     numInfected += 1
         return numInfected
     
 
     def die(self, cell):
         #kills cell if random number is less than death probability
+        _idx = -1
         self.grid[cell.x][cell.y] = None
-        if cell in self.cells: self.cells.remove(cell) # NOTE: this could be an issue
-        return 1
+        if cell in self.cells:
+            _idx = self.cells.index(cell)
+            self.cells.remove(cell) # TODO: this could be an issue
+        return _idx
     
 
     def getLocalArea(self, x, y, radius):
@@ -207,7 +345,7 @@ class GameState():
 
     def getLocalCells(self, x, y, radius): 
         # NOTE keep in mind this radius
-        # NOTE: removes the given cell from local cells
+        # NOTE removes the given cell from local cells
         lowerX, lowerY, higherX, higherY = self.getLocalArea(x, y, radius)
 
 
@@ -230,7 +368,7 @@ class GameState():
         return neighbors
 
 
-    def getNeighbors(self, x, y, includeEmpty=0):
+    def getNeighbors(self, x, y, includeEmpty=0) -> list[BaseCell]:
         #returns list of neighbor Cell objects
         neighbors = []
         if y+1 < self.height:
@@ -265,6 +403,11 @@ class GameState():
         #returns list of all Cell objects in grid
         return [cell for cell in list(chain(*self.grid)) if cell is not None]
     
+
+    def shuffleCells(self):
+        # NOTE: IMPORTANT
+        rand.shuffle(self.cells)
+
 
     def __str__(self):
         out = [[str(self.grid[x][y])[0] for x in range(self.width)]

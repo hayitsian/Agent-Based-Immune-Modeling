@@ -2,7 +2,7 @@
 
 from gamestate import GameState
 from cell import BaseCell, NaiveImmuneCell, HelperImmuneCell
-from cellAgents import NaiveUtility
+from agents import NaiveUtility
 from copy import copy
 import numpy as np
 

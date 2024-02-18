@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from timeit import default_timer
 from time import sleep
-from cellAgents import NaiveUtility, SmartUtility
+from agents import NaiveUtility, SmartUtility
 
 def plot(EPOCHS, FIGURE_TITLE, FIGURE_NAME, _labels, data):
     for i in range(len(data)):
@@ -40,11 +40,11 @@ def main(INFECT_PROB = 0.035,
     EPOCHS = 1500,
     FRAME_DELAY = 0.0,
     PLOT = True,
-    VERBOSE = False
+    VERBOSE = True
     ):
 
     INIT_IMMUNE = INIT_EFFECTOR + INIT_HELPER
-    INIT_HEALTHY = INIT_CELLS - INIT_IMMUNE - INIT_HELPER - INIT_INFECTED
+    INIT_HEALTHY = INIT_CELLS - INIT_IMMUNE - INIT_INFECTED
 
 
     gameState = Game.start(WIDTH, HEIGHT, utility=NaiveUtility,
@@ -63,7 +63,7 @@ def main(INFECT_PROB = 0.035,
 
     
     labelsCount = ["Epoch", "Cell count", "Healthy cell count", "Infected cell count", "Immune cell count", "Effector immune cell count", "Helper immune cell count"]
-    labelsAction = ["Activated cell count", "Reproduced cell count", "Moved cell count", "Died cell count", "Killed cell count", "Boosted cell count", "Suppressed cell count"]
+    labelsAction = ["Activated cell count", "Reproduced cell count", "Moved cell count", "Died cell count", "Killed cell count"]
     labels = labelsCount+labelsAction
 
     dataDict = {}
