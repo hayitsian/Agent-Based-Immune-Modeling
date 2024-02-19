@@ -53,7 +53,7 @@ class Game():
             y = random.randint(0, height-1)
 
             if (x, y) not in posList:
-                cell = SmartImmuneCell(x, y, window=endocrineWindow, attack_success=attack_success, immune_constant=immune_constant, repro=repro_prob, die=die_prob)
+                cell = SmartImmuneCell(x, y, window=autocrineWindow, attack_success=attack_success, immune_constant=immune_constant, repro=0.0, die=0.0) # NOTE changed the repro and die probs to 0 for testing
                 cellList.append(cell)
                 posList.append((x, y))
                 i += 1
@@ -102,6 +102,7 @@ class Game():
         _numKilled = 0 # immune attacks
         _numDied = 0
         
+        # TODO update these lists so that any died cells cannot reproduce move attack or infect others
 
         # NOTE: priority
         # immune activation > apoptosis > reproduction > infection > movement
@@ -145,6 +146,7 @@ class Game():
         numHealthy = numCells - numImmune - numInfected
         numEffector = numImmune - numHelper
 
+        assert len(gameState.getAllCellsList()) == len(gameState.getAllCellsGrid()), f"Number of gameState cells: {len(gameState.getAllCellsList())}    Number of Grid cells: {len(gameState.getAllCellsGrid())}"
 
         return gameState, [numCells, numHealthy, numInfected, numImmune, numEffector, numHelper, _numReproduce, _numMoved, _numInfected, _numDied, _numActivated, _numKilled]
 

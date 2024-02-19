@@ -33,24 +33,26 @@ def NaiveUtility(cell, localCells, localArea):
             elif n.helper: utilDict["ATTACK"] -= 0.6 # bad if surrounded by helper cells
     else:
         for n in localCells:
-            if n.infected and util.isNeighbor(cell.x, cell.y, n.x, n.y): utilDict["ATTACK"] += 39.5
-            elif not n.immune and util.isNeighbor(cell.x, cell.y, n.x, n.y): utilDict["ATTACK"] -= 10.
+            if n.infected and util.isNeighbor(cell.x, cell.y, n.x, n.y): utilDict["ATTACK"] += 390.5
+            # elif not n.immune and util.isNeighbor(cell.x, cell.y, n.x, n.y): utilDict["ATTACK"] -= 10.
 
     # MOVE
     if cell.helper:
         if density < 0.25: utilDict["MOVE"] += 1.5
         else: utilDict["MOVE"] += 2.5
     else:
-        if density < 0.3: utilDict["MOVE"] += 2.5
-        else: utilDict["MOVE"] += 0.5
+        # if density < 0.3: utilDict["MOVE"] += 2.5
+        # else: utilDict["MOVE"] += 0.5
+        utilDict["MOVE"] = 10.5
 
     # PASS
     if cell.helper:
         if density > 0.75 and hlpDense > 0.65: utilDict["PASS"] += np.inf
         else: utilDict["PASS"] -= np.inf
     else:
-        if density > 0.25 and immDensity > 0.35 and len([cell for cell in localCells if cell.infected])==0: utilDict["PASS"] += np.inf
-        else: utilDict["PASS"] -= np.inf
+        # if density > 0.25 and immDensity > 0.35 and len([cell for cell in localCells if cell.infected])==0: utilDict["PASS"] += np.inf
+        # else: 
+        utilDict["PASS"] = -np.inf
 
 
     return max(utilDict, key=utilDict.get), utilDict # return action with maximum utility

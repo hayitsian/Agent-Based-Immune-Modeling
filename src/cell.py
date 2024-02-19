@@ -41,6 +41,7 @@ class BaseCell():
     def decrementCounter(self):
         if self.counter == 1:
             self.revert()
+            return
         
         if self.counter > 0: 
             self.counter -= 1
@@ -91,7 +92,7 @@ class BaseCell():
 class NaiveImmuneCell(BaseCell):
 
     def __init__(self, x, y, window, attack_success, immune_constant=0.75, repro=.1, die=.05):
-        super().__init__(x, y, window, repro=repro*immune_constant, die=die*(immune_constant**10), infec=0.0)
+        super().__init__(x, y, window, repro=repro*immune_constant, die=die*(immune_constant**10), infec=0.0) # what is an immune constant?
         self.immune = True
         self.attack_success = attack_success #probability of attacking neighbor cells successfully
         self.immuned_constant = immune_constant
@@ -113,17 +114,19 @@ class NaiveImmuneCell(BaseCell):
             for neigh in neighbors:
                 restrictedList.append((neigh.x, neigh.y))
                 # add its coords to some list
+        newX = self.x
+        newY = self.y
 
         if randPoint==0 and self._movementConditions(self.x - 1, self.y, width, height, restrictedList):
-            self.x = self.x - 1
+            newX = self.x - 1
         elif randPoint==1 and self._movementConditions(self.x + 1, self.y, width, height, restrictedList):
-            self.x = self.x + 1
+            newX = self.x + 1
         elif randPoint==2 and self._movementConditions(self.x, self.y - 1, width, height, restrictedList):
-            self.y = self.y - 1
+            newY = self.y - 1
         elif randPoint==3 and self._movementConditions(self.x, self.y + 1, width, height, restrictedList):
-            self.y = self.y + 1
+            newY = self.y + 1
 
-        return self.x, self.y
+        return newX, newY
 
 
     def updateParams(self, localCells, localArea):
@@ -164,8 +167,6 @@ class SmartImmuneCell(NaiveImmuneCell):
 
         if min(distDict.values()) == 0.0: return self.x, self.y
         newX, newY = min(distDict, key=distDict.get)
-        self.x = newX
-        self.y = newY
         return newX, newY
 
 
@@ -215,8 +216,6 @@ class HelperImmuneCell(SmartImmuneCell):
 
         if min(distDict.values()) == 0.0: return self.x, self.y
         newX, newY = min(distDict, key=distDict.get)
-        self.x = newX
-        self.y = newY
         return newX, newY
 
     def activate(self, neighbors, localArea):
