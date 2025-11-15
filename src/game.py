@@ -2,7 +2,7 @@
 
 from gamestate import GameState
 from agents import NaiveUtility
-from cell import BaseCell, SmartImmuneCell, HelperImmuneCell
+from cell import BaseCell, SmartImmuneCell, HelperImmuneCell, NaiveImmuneCell
 import random
 from scipy.stats import bernoulli
 import util
@@ -53,7 +53,7 @@ class Game():
             y = random.randint(0, height-1)
 
             if (x, y) not in posList:
-                cell = SmartImmuneCell(x, y, window=autocrineWindow, attack_success=attack_success, immune_constant=immune_constant, repro=0.0, die=0.0) # NOTE changed the repro and die probs to 0 for testing
+                cell = NaiveImmuneCell(x, y, window=autocrineWindow, attack_success=attack_success, immune_constant=immune_constant, repro=0.0, die=0.0) # NOTE changed the repro and die probs to 0 for testing
                 cellList.append(cell)
                 posList.append((x, y))
                 i += 1

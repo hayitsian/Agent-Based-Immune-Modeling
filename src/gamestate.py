@@ -1,7 +1,7 @@
 
 from scipy.stats import bernoulli
 from cell import BaseCell, NaiveImmuneCell, SmartImmuneCell, HelperImmuneCell
-from agents import NaiveUtility, SmartUtility
+from agents import NaiveUtility, SmartUtility, StupidUtility
 from grid import Grid
 import numpy as np
 import random as rand
@@ -11,7 +11,7 @@ from itertools import chain
 class GameState():
 
     def __init__(self, width=100, height=100,
-                 utility = NaiveUtility, autocrineWindow = 2,
+                 utility = StupidUtility, autocrineWindow = 2,
                  paracrineWindow = 4, endocrineWindow = 8):
         
         self.width = width
@@ -63,19 +63,25 @@ class GameState():
 
             else: immActs.append("PASS")
 
+        print(f"Imm actions: {immActs}")
         return immActs
 
 
     def calculateReproductions(self):
-        return bernoulli.rvs([cell.repro_prob for cell in self.cells]).tolist()
-
+        p = bernoulli.rvs([cell.repro_prob for cell in self.cells]).tolist()
+        # print(f"Repr actions: {p}")
+        return p
 
     def calculateInfections(self):
-        return bernoulli.rvs([cell.infection_prob for cell in self.cells]).tolist()
+        p = bernoulli.rvs([cell.infection_prob for cell in self.cells]).tolist()
+        # print(f"Inf actions: {p}")
+        return p
 
 
     def calculateDeaths(self):
-        return bernoulli.rvs([cell.die_prob for cell in self.cells]).tolist()
+        p = bernoulli.rvs([cell.die_prob for cell in self.cells]).tolist()
+        # print(f"Death actions: {p}")
+        return p
 
 
     def performImmuneActivations(self, listOfActions: list[str]):

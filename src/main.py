@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from timeit import default_timer
 from time import sleep
-from agents import NaiveUtility, SmartUtility
+from agents import NaiveUtility, SmartUtility, StupidUtility
 
 def plot(EPOCHS, FIGURE_TITLE, FIGURE_NAME, _labels, data):
     for i in range(len(data)):
@@ -28,17 +28,17 @@ def main(INFECT_PROB = 0.035,
     IMMUNE_CONSTANT = 0.7,
     HELPER_BOOST = 1.2,
     BOOST_COUNT = 5,
-    INIT_CELLS = 50,
-    INIT_INFECTED = 8,
-    INIT_EFFECTOR = 16,
+    INIT_CELLS = 20,
+    INIT_INFECTED = 4,
+    INIT_EFFECTOR = 4,
     INIT_HELPER = 0,
-    AUTOCRINE_WINDOW = 2,
-    PARACRINE_WINDOW = 8,
-    ENDOCRINE_WINDOW = 16,
-    WIDTH = 50,
-    HEIGHT = 50,
-    EPOCHS = 1500,
-    FRAME_DELAY = 0.0,
+    AUTOCRINE_WINDOW = 1,
+    PARACRINE_WINDOW = 2,
+    ENDOCRINE_WINDOW = 4,
+    WIDTH = 10,
+    HEIGHT = 10,
+    EPOCHS = 100,
+    FRAME_DELAY = 0.1,
     PLOT = True,
     VERBOSE = True
     ):
@@ -47,7 +47,7 @@ def main(INFECT_PROB = 0.035,
     INIT_HEALTHY = INIT_CELLS - INIT_IMMUNE - INIT_INFECTED
 
 
-    gameState = Game.start(WIDTH, HEIGHT, utility=NaiveUtility,
+    gameState = Game.start(WIDTH, HEIGHT, utility=StupidUtility,
                     autocrineWindow = AUTOCRINE_WINDOW, paracrineWindow = PARACRINE_WINDOW, endocrineWindow = ENDOCRINE_WINDOW,
                     infection_prob=INFECT_PROB, repro_prob=REPRODUCE_PROB, die_prob=DEATH_PROB,
                     attack_success=ATTACK_SUCCESS, numCells=INIT_CELLS, 
@@ -63,7 +63,7 @@ def main(INFECT_PROB = 0.035,
 
     
     labelsCount = ["Epoch", "Cell count", "Healthy cell count", "Infected cell count", "Immune cell count", "Effector immune cell count", "Helper immune cell count"]
-    labelsAction = ["Activated cell count", "Reproduced cell count", "Moved cell count", "Died cell count", "Killed cell count"]
+    labelsAction = ["Reproduced cell count", "Moved cell count", "Infected cell count", "Died cell count", "Activated cell count", "Killed cell count"]
     labels = labelsCount+labelsAction
 
     dataDict = {}
@@ -88,6 +88,7 @@ def main(INFECT_PROB = 0.035,
     numSteps = 0
 
     while numSteps < EPOCHS:
+
         stepTime = default_timer()
         numSteps += 1
 
@@ -108,7 +109,7 @@ def main(INFECT_PROB = 0.035,
         if stepTime < FRAME_DELAY: sleep (FRAME_DELAY - stepTime)
 
         if not VERBOSE: print(f"Epoch: {numSteps} took {stepTime:.3f} seconds")
-        # sleep(FRAME_DELAY)
+        sleep(FRAME_DELAY)
 
     time = default_timer() - startTime
     # if VERBOSE: print(f"Simulation took: {time:.3f}")

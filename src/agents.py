@@ -4,6 +4,17 @@ import util
 import random
 import numpy as np
 
+def StupidUtility(cell, localCells, localArea):
+    utilDict = {}
+    utilDict["ATTACK"] = 0.
+    utilDict["MOVE"] = 0.
+    utilDict["PASS"] = 0.
+
+    if (len([cell for cell in localCells if cell.infected]) > 0):
+        utilDict["ATTACK"] = 100000000.
+    else: utilDict["MOVE"] = 100000000.
+
+    return max(utilDict, key=utilDict.get), utilDict # return action with maximum utility
 
 def NaiveUtility(cell, localCells, localArea):
 

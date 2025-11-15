@@ -74,6 +74,9 @@ class BaseCell():
     def move(self, neighbors, width, height):
         # does not move, just for consistency
         return self.x, self.y
+    
+    def getPosition(self):
+        return self.x, self.y
 
     def updateParams(self, localCells, localArea):
         density = float(len(localCells)) / float(localArea)

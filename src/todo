@@ -1,0 +1,18 @@
+issues I am seeing with immune cells:
+- cells tend to aggregate along the diagonals in the late game
+- when immune cells are alone, they appear to attack infected cells
+	- but not always. 
+- when together, then tend to not attack at all even if surrounded by 2+ infected cells
+- immune cells tend to aggregate in the middle too
+- towards the end game even though their reproduced and dead probabilities are almost the same, they outmatch healthy cells bc they cannot be infected
+- the immune cells reproduce even when setting reproduce and die probabilities to zero?
+	- the probability calculations may be mixing up cells
+	- like a cell might die or reproduce, shifting everything in the wrong way
+- the immune cells will stick next to infected cells but not do anything?
+
+quality of life for faster iterations:
+- make the input options command line arguments
+- make runtime folder with an output log and a replayable video of the simulation
+- make GUI for visual interactions with the gamestate
+	- e.g. can hover an immune cell to view its visibility window
+	

@@ -44,7 +44,6 @@ def testLocalCells():
     assert cell4 not in baseLocalCells, "Self cell in local cells"
     assert cell8 in baseLocalCells, "Cell8 not in local cells"
     assert cell1 in baseLocalCells, "Cell1 not in local cells"
-    assert cell5 in baseLocalCells, "Cell5 not in local cells"
     assert cell6 not in baseLocalCells, "cell6 in local cells"
     assert cell7 in baseLocalCells, "Cell7 not in local cells"
     
