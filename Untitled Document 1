@@ -1,0 +1,15 @@
+a cell
+- interacts with its immediate environment
+- responds with proteins that traverse a gradient
+- mutates over time
+- can learn behavior to respond faster to recurring situations
+
+
+how to do all the cell calculations in a loop and all the actions at the end?
+- (done) calculate the probabilities beforehand
+- loop through and calculate the action for each cell (randomize the order and freeze the gamestate)
+	- do not actually perform the actions though
+	- i.e. do not move, create, and remove any cells
+- at the end, perform the actions
+	- at once? not sure how that is possible
+	- in a random order

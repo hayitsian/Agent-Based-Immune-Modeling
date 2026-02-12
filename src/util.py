@@ -5,8 +5,6 @@ import random
 import inspect
 import math
 import numpy as np
-# from gamestate import GameState
-# from cell import BaseCell
 from collections import deque
 
 def raiseNotDefined():
@@ -25,6 +23,7 @@ def flipCoin(p):
 
 
 def BFS(cell, list, width, height):
+    # TODO update to rely on not cells or move to another file that can import BaseCell
     queue = deque()
     queue.append([(cell.x, cell.y)])
 
@@ -46,6 +45,38 @@ def BFS(cell, list, width, height):
             queue.append(path + [pos])
             explored.add(pos)
 
+
+def isNeighbor(x1, y1, x2, y2):
+    return (x1==x2 and abs(y1-y2)==1) or (y1==y2 and abs(x1-x2)==1)
+
+
+def getNeighboringPositions(x, y, width, height):
+    neighbors = []
+    if y+1 < height:
+        neighbors.append((x, y+1))
+    if y-1 >= 0:
+        neighbors.append((x, y-1))
+    if x+1 < width:
+        neighbors.append((x-1, y))
+    if x-1 >= 0:
+        neighbors.append((x+1, y))
+    return neighbors
+
+
+def removeIndexesFromList(testListToModify, idxToRemoveList):
+    res = []
+    for idx, ele in enumerate(testListToModify): 
+        # checking if element not present in index list
+        if idx not in idxToRemoveList:
+            res.append(ele)
+    return res
+
+def addItemAtIndexesToList(listToModify: list[any], idxToAddList: list[int], itemToAdd):
+    idxToAddList.sort()
+    for _idx in idxToAddList:
+        assert _idx <= len(listToModify) # is this necessary?
+        listToModify.insert(_idx, itemToAdd)
+    return listToModify
 
 def nearestPoint(pos):
     """
